@@ -3,6 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../data/sample_timetable.dart';
+import '../models/daily_timetable.dart';
+import '../models/school_day.dart';
+import '../models/school_time_status.dart';
+import '../repositories/school_repository.dart';
+import '../services/school_calendar_service.dart';
 import '../services/school_time_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -19,16 +24,48 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final SchoolRepository _schoolRepository = SampleSchoolRepository();
+  final _schoolCalendarService = const SchoolCalendarService();
   final _schoolTimeService = const SchoolTimeService();
   late DateTime _now;
   Timer? _clockTimer;
+  SchoolDay? _schoolDay;
+  DailyTimetable? _dailyTimetable;
 
   @override
   void initState() {
     super.initState();
     _now = DateTime.now();
+    _loadDayData(_now);
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
+      _refreshNow();
+    });
+  }
+
+  void _refreshNow() {
+    final previousDate = _dateOnly(_now);
+    final now = DateTime.now();
+    if (!mounted) return;
+
+    setState(() => _now = now);
+    if (_dateOnly(now) != previousDate) {
+      _loadDayData(now);
+    }
+  }
+
+  Future<void> _loadDayData(DateTime date) async {
+    final schoolDay = await _schoolCalendarService.getSchoolDay(
+      date: date,
+      repository: _schoolRepository,
+    );
+    final timetable = schoolDay.hasClasses
+        ? await _schoolRepository.getTimetable(date)
+        : null;
+
+    if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
+    setState(() {
+      _schoolDay = schoolDay;
+      _dailyTimetable = timetable;
     });
   }
 
@@ -41,10 +78,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final dateLabel = _formatToday(_now);
-    final schoolStatus = _schoolTimeService.calculateStatus(
-      now: _now,
-      schedule: todaySchedule,
-    );
+    final classes = _dailyTimetable?.classes ?? const [];
+    final schoolStatus = _schoolDay?.hasClasses == true
+        ? _schoolTimeService.calculateStatus(now: _now, schedule: classes)
+        : const SchoolTimeStatus(
+            type: SchoolStatusType.noClasses,
+            remaining: Duration.zero,
+          );
 
     return Scaffold(
       body: SafeArea(
@@ -61,17 +101,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   _Header(dateLabel: dateLabel),
                   const SizedBox(height: AppSpacing.large),
-                  CurrentStatusCard(status: schoolStatus),
+                  CurrentStatusCard(
+                    status: schoolStatus,
+                    schoolDay: _schoolDay,
+                  ),
                   const SizedBox(height: AppSpacing.section),
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
-                      Text('총 5교시', style: AppTextStyles.caption),
+                      const Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
+                      Text(
+                        '총 ${classes.length}교시',
+                        style: AppTextStyles.caption,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
-                  ...todaySchedule.map(
+                  ...classes.map(
                     (schedule) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: TimetableTile(
@@ -93,6 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
 
 class _Header extends StatelessWidget {
   const _Header({required this.dateLabel});

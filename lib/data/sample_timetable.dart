@@ -1,6 +1,9 @@
 import '../models/class_schedule.dart';
+import '../models/daily_timetable.dart';
+import '../models/school_event.dart';
+import '../repositories/school_repository.dart';
 
-const todaySchedule = <ClassSchedule>[
+const sampleClassSchedule = <ClassSchedule>[
   ClassSchedule(
     period: 1,
     subject: '수학',
@@ -37,3 +40,55 @@ const todaySchedule = <ClassSchedule>[
     endMinute: 14 * 60 + 5,
   ),
 ];
+
+final sampleSchoolEvents = <SchoolEvent>[
+  SchoolEvent(
+    startDate: DateTime(2026, 8, 17),
+    endDate: DateTime(2026, 8, 17),
+    name: '재량휴업일',
+    type: SchoolEventType.schoolClosure,
+  ),
+];
+
+class SampleSchoolRepository implements SchoolRepository {
+  SampleSchoolRepository({List<SchoolEvent>? events})
+    : _events = List.unmodifiable(events ?? sampleSchoolEvents);
+
+  final List<SchoolEvent> _events;
+
+  @override
+  Future<DailyTimetable?> getTimetable(DateTime date) async {
+    final dateOnly = _dateOnly(date);
+    final hasNonSchoolEvent = _events.any(
+      (event) =>
+          event.includes(dateOnly) && event.type != SchoolEventType.schoolEvent,
+    );
+    if (_isWeekend(dateOnly) || hasNonSchoolEvent) {
+      return null;
+    }
+
+    return DailyTimetable(date: dateOnly, classes: sampleClassSchedule);
+  }
+
+  @override
+  Future<List<SchoolEvent>> getSchoolEvents({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final rangeStart = _dateOnly(from);
+    final rangeEnd = _dateOnly(to);
+    return _events
+        .where(
+          (event) =>
+              !event.endDate.isBefore(rangeStart) &&
+              !event.startDate.isAfter(rangeEnd),
+        )
+        .toList(growable: false);
+  }
+
+  bool _isWeekend(DateTime date) =>
+      date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+}

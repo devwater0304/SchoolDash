@@ -10,7 +10,7 @@ void main() {
   SchoolTimeStatus statusAt(int hour, int minute) {
     return service.calculateStatus(
       now: DateTime(2026, 8, 14, hour, minute),
-      schedule: todaySchedule,
+      schedule: sampleClassSchedule,
     );
   }
 
@@ -46,14 +46,14 @@ void main() {
     expect(status.type, SchoolStatusType.afterClasses);
     expect(
       service.classStatusFor(
-        schedule: todaySchedule.first,
+        schedule: sampleClassSchedule.first,
         now: DateTime(2026, 8, 14, 9, 10),
       ),
       ClassStatus.current,
     );
     expect(
       service.classStatusFor(
-        schedule: todaySchedule.first,
+        schedule: sampleClassSchedule.first,
         now: DateTime(2026, 8, 14, 9, 35),
       ),
       ClassStatus.completed,

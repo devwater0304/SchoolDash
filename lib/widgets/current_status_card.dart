@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../models/school_day.dart';
 import '../models/school_time_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
 class CurrentStatusCard extends StatelessWidget {
-  const CurrentStatusCard({required this.status, super.key});
+  const CurrentStatusCard({required this.status, this.schoolDay, super.key});
 
   final SchoolTimeStatus status;
+  final SchoolDay? schoolDay;
 
   @override
   Widget build(BuildContext context) {
-    final copy = _StatusCardCopy.from(status);
+    final copy = _StatusCardCopy.from(status, schoolDay);
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -79,7 +81,7 @@ class _StatusCardCopy {
   final String detail;
   final IconData icon;
 
-  factory _StatusCardCopy.from(SchoolTimeStatus status) {
+  factory _StatusCardCopy.from(SchoolTimeStatus status, SchoolDay? schoolDay) {
     final minutes = status.remaining.inMinutes;
     final currentClass = status.currentClass;
     final nextClass = status.nextClass;
@@ -121,12 +123,29 @@ class _StatusCardCopy {
           icon: Icons.celebration_outlined,
         );
       case SchoolStatusType.noClasses:
-        return const _StatusCardCopy(
+        final reason = schoolDay?.event?.name ?? _dayTypeLabel(schoolDay?.type);
+        return _StatusCardCopy(
           eyebrow: '시간표 없음',
-          title: '오늘은 수업이 없어요',
-          detail: '편안한 하루 보내세요',
+          title: '오늘은 수업이 없습니다',
+          detail: reason ?? '편안한 하루 보내세요',
           icon: Icons.event_available_outlined,
         );
+    }
+  }
+
+  static String? _dayTypeLabel(SchoolDayType? type) {
+    switch (type) {
+      case SchoolDayType.weekend:
+        return '주말이에요';
+      case SchoolDayType.publicHoliday:
+        return '공휴일이에요';
+      case SchoolDayType.vacation:
+        return '방학 기간이에요';
+      case SchoolDayType.schoolClosure:
+        return '휴업일이에요';
+      case SchoolDayType.schoolDay:
+      case null:
+        return null;
     }
   }
 }

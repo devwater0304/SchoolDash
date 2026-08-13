@@ -7,6 +7,7 @@
 
 - 하늘색 포인트의 홈 화면과 오늘의 시간표
 - 현재 시간에 따른 수업 전 / 수업 중 / 쉬는 시간 / 점심시간 / 수업 종료 상태 계산
+- 날짜별 시간표와 학교 일정에 따른 수업일 판단
 - 지난 교시·현재 교시·예정 교시의 시각적 구분
 - 매분 현재 상태와 시간표 표시 자동 갱신
 - 샘플 시간표 데이터로 동작하는 초기 프로토타입
@@ -15,15 +16,18 @@
 
 ```text
 lib/
-  data/       샘플 시간표 데이터
-  models/     시간표와 학교 상태 모델
-  services/   현재 시간 기반 상태 계산
+  data/           샘플 시간표와 일정 데이터
+  models/         날짜별 시간표, 학교 일정, 학교 상태 모델
+  repositories/   데이터 소스 공통 인터페이스
+  services/       학교일 판단과 현재 시간 기반 상태 계산
   screens/    화면 조립
   widgets/    재사용 UI 컴포넌트
   theme/      색상, 간격, 텍스트 스타일
 ```
 
-시간 계산은 `SchoolTimeService`에 분리되어 있어 앱 홈 화면뿐 아니라 향후 홈 위젯이나 Apple Watch 화면에서도 같은 결과를 재사용할 수 있습니다.
+데이터는 `SchoolRepository`를 통해 요청합니다. 현재는 `SampleSchoolRepository`가 샘플 데이터를 제공하고, 실제 NEIS 연동 시에는 `NeisSchoolRepository`처럼 같은 인터페이스를 구현한 데이터 소스로 교체할 수 있습니다.
+
+수업 여부는 `SchoolCalendarService`가 주말과 학교 일정을 기준으로 판단합니다. 수업일인 경우에만 날짜별 `DailyTimetable`을 가져와 `SchoolTimeService`로 전달하므로, 시간 계산 로직은 교시 시간 계산만 담당합니다. 이 흐름은 홈 위젯이나 Apple Watch에서도 그대로 재사용할 수 있습니다.
 
 ## 실행
 
