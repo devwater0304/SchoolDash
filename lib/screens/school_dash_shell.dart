@@ -51,6 +51,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             clock: widget.clock,
             dateController: widget.dateController,
             mealLoadService: widget.mealLoadService,
+            isActive: _selectedIndex == 1,
           ),
           if (widget.mealLoadService case final mealLoadService?)
             MealScreen(

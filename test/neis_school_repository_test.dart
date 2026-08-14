@@ -58,7 +58,7 @@ void main() {
     expect(timetables[0].classes[0].startMinute, 8 * 60 + 50);
     expect(timetables[0].classes[1].endMinute, 10 * 60 + 30);
     expect(timetables[1].classes.single.period, 7);
-    expect(timetables[1].classes.single.hasBellTime, isFalse);
+    expect(timetables[1].classes.single.time, '15:15 – 16:00');
   });
 
   test('uses the elementary endpoint for elementary school profiles', () async {

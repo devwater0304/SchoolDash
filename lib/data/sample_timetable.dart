@@ -37,10 +37,38 @@ const sampleClassSchedule = <ClassSchedule>[
     period: 5,
     subject: '과학',
     teacher: '정선생님',
-    startMinute: 13 * 60 + 20,
-    endMinute: 14 * 60 + 5,
+    startMinute: 13 * 60 + 25,
+    endMinute: 14 * 60 + 10,
+  ),
+  ClassSchedule(
+    period: 6,
+    subject: '사회',
+    teacher: '박선생님',
+    startMinute: 14 * 60 + 20,
+    endMinute: 15 * 60 + 5,
+  ),
+  ClassSchedule(
+    period: 7,
+    subject: '음악',
+    teacher: '최선생님',
+    startMinute: 15 * 60 + 15,
+    endMinute: 16 * 60,
   ),
 ];
+
+/// Local bell-time template used when NEIS supplies eighth period or later.
+/// After fifth period, this school's 45-minute lessons have 10-minute breaks.
+final localBellTimeTemplate = List<ClassSchedule>.unmodifiable([
+  ...sampleClassSchedule,
+  for (var period = 8; period <= 12; period++)
+    ClassSchedule(
+      period: period,
+      subject: '',
+      teacher: '',
+      startMinute: 13 * 60 + 25 + (period - 5) * 55,
+      endMinute: 13 * 60 + 25 + (period - 5) * 55 + 45,
+    ),
+]);
 
 final sampleSchoolEvents = <SchoolEvent>[
   SchoolEvent(

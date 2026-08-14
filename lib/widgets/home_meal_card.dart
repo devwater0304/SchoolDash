@@ -39,20 +39,30 @@ class HomeMealCard extends StatelessWidget {
               children: [
                 Text('$title 🍚', style: AppTextStyles.sectionTitle),
                 const SizedBox(height: AppSpacing.medium),
-                Text(currentMeal.menus.first, style: AppTextStyles.cardTitle),
-                if (currentMeal.menus.length > 1) ...[
+                if (currentMeal.menus.length >= 5) ...[
+                  Text(currentMeal.menus[4], style: AppTextStyles.cardTitle),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14),
                     child: Divider(color: AppColors.sky),
                   ),
-                  ...currentMeal.menus
-                      .skip(1)
+                  ...currentMeal.menus.indexed
+                      .where((entry) => entry.$1 != 4)
                       .map(
-                        (menu) => Padding(
+                        (entry) => Padding(
                           padding: const EdgeInsets.only(bottom: 7),
-                          child: Text('• $menu', style: AppTextStyles.body),
+                          child: Text(
+                            '• ${entry.$2}',
+                            style: AppTextStyles.body,
+                          ),
                         ),
                       ),
+                ] else ...[
+                  ...currentMeal.menus.map(
+                    (menu) => Padding(
+                      padding: const EdgeInsets.only(bottom: 7),
+                      child: Text('• $menu', style: AppTextStyles.body),
+                    ),
+                  ),
                 ],
               ],
             ),

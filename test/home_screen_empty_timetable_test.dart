@@ -58,7 +58,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('오늘은 쉬는 날!'), findsWidgets);
+      expect(find.text('오늘은 쉬는 날!'), findsOneWidget);
       expect(find.text('여름방학'), findsWidgets);
     },
   );

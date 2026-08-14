@@ -21,7 +21,7 @@ void main() {
   testWidgets('moves the main meal to the next available meal after classes', (
     tester,
   ) async {
-    await _pumpMealScreen(tester, DateTime(2026, 6, 15, 15));
+    await _pumpMealScreen(tester, DateTime(2026, 6, 15, 17));
 
     expect(find.text('내일의 급식'), findsOneWidget);
     expect(find.text('• 카레라이스'), findsOneWidget);
@@ -30,7 +30,7 @@ void main() {
   testWidgets('skips a meal-free tomorrow after classes', (tester) async {
     await _pumpMealScreen(
       tester,
-      DateTime(2026, 6, 15, 15),
+      DateTime(2026, 6, 15, 17),
       repository: _SparseMealRepository(),
     );
 
@@ -61,6 +61,18 @@ void main() {
     expect(find.text('전체 급식표'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('다음 2주 보기'), 180);
     expect(find.text('다음 2주 보기'), findsOneWidget);
+  });
+
+  testWidgets('emphasizes the fifth menu when it exists', (tester) async {
+    await _pumpMealScreen(
+      tester,
+      DateTime(2026, 6, 15, 9),
+      repository: _FiveMenuMealRepository(),
+    );
+
+    expect(find.text('다섯번째 메뉴'), findsOneWidget);
+    expect(find.text('• 다섯번째 메뉴'), findsNothing);
+    expect(find.text('• 첫번째 메뉴'), findsOneWidget);
   });
 }
 
@@ -142,6 +154,22 @@ class _EmptyMealRepository implements MealRepository {
     required DateTime from,
     required DateTime to,
   }) async => const [];
+}
+
+class _FiveMenuMealRepository implements MealRepository {
+  @override
+  Future<List<Meal>> getMeals({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => [
+    Meal(
+      date: DateTime(2026, 6, 15),
+      type: MealType.lunch,
+      rawMenuText: '테스트',
+      menus: const ['첫번째 메뉴', '두번째 메뉴', '세번째 메뉴', '네번째 메뉴', '다섯번째 메뉴'],
+    ),
+  ];
 }
 
 class _FixedClock implements AppClock {

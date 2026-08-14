@@ -27,6 +27,7 @@ class HomeScreen extends StatefulWidget {
     required this.clock,
     this.dateController,
     this.mealLoadService,
+    this.isActive = true,
     super.key,
   });
 
@@ -35,6 +36,7 @@ class HomeScreen extends StatefulWidget {
   final AppClock clock;
   final AppDateController? dateController;
   final MealLoadService? mealLoadService;
+  final bool isActive;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -47,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   TimetableLoadResult? _timetableResult;
   var _isLoading = true;
   MealLoadResult? _mealResult;
-  final _timetableScrollController = ScrollController();
+  final _timetableScrollController = FixedExtentScrollController();
   int? _focusedPeriod;
 
   @override
@@ -67,6 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (oldWidget.dateController != widget.dateController) {
       oldWidget.dateController?.removeListener(_onAppDateChanged);
       widget.dateController?.addListener(_onAppDateChanged);
+    }
+    if (widget.isActive && !oldWidget.isActive) {
+      _focusCurrentClass(force: true);
     }
   }
 
@@ -238,22 +243,50 @@ class _HomeScreenState extends State<HomeScreen> {
                     _TimetableEmptyState(schoolDay: result?.schoolDay)
                 else
                   SizedBox(
-                    height: 300,
-                    child: ListView.separated(
-                      controller: _timetableScrollController,
-                      padding: EdgeInsets.zero,
-                      itemCount: classes.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final schedule = classes[index];
-                        return TimetableTile(
-                          schedule: schedule,
-                          status: _schoolTimeService.classStatusFor(
-                            schedule: schedule,
-                            now: _now,
-                          ),
-                        );
-                      },
+                    height: 292,
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black,
+                          Colors.black,
+                          Colors.transparent,
+                        ],
+                        stops: [0, 0.13, 0.87, 1],
+                      ).createShader(bounds),
+                      blendMode: BlendMode.dstIn,
+                      child: ListWheelScrollView.useDelegate(
+                        controller: _timetableScrollController,
+                        itemExtent: 82,
+                        physics: const FixedExtentScrollPhysics(),
+                        perspective: 0.001,
+                        diameterRatio: 2.4,
+                        useMagnifier: true,
+                        magnification: 1.035,
+                        overAndUnderCenterOpacity: 0.48,
+                        childDelegate: ListWheelChildBuilderDelegate(
+                          childCount: classes.length,
+                          builder: (context, index) {
+                            final schedule = classes[index];
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                child: TimetableTile(
+                                  schedule: schedule,
+                                  status: _schoolTimeService.classStatusFor(
+                                    schedule: schedule,
+                                    now: _now,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 if (!showMealFirst && widget.mealLoadService != null) ...[
@@ -300,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
-  void _focusCurrentClass() {
+  void _focusCurrentClass({bool force = false}) {
     final classes =
         _timetableResult?.timetable?.classes ?? const <ClassSchedule>[];
     ClassSchedule? current;
@@ -311,7 +344,9 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       }
     }
-    if (current == null || _focusedPeriod == current.period) return;
+    if (current == null || (!force && _focusedPeriod == current.period)) {
+      return;
+    }
     _focusedPeriod = current.period;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_timetableScrollController.hasClients && mounted) {
@@ -319,12 +354,8 @@ class _HomeScreenState extends State<HomeScreen> {
           (schedule) => schedule.period == current!.period,
         );
         if (index < 0) return;
-        const tileExtent = 82.0;
-        final target = (index * tileExtent - 105)
-            .clamp(0.0, _timetableScrollController.position.maxScrollExtent)
-            .toDouble();
-        _timetableScrollController.animateTo(
-          target,
+        _timetableScrollController.animateToItem(
+          index,
           duration: const Duration(milliseconds: 360),
           curve: Curves.easeOutCubic,
         );
@@ -405,13 +436,13 @@ class _SchoolBreakTimetableState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.medium),
             Text(
-              eventName ?? '오늘은 쉬는 날!',
+              eventName ?? '시간표가 없는 날',
               textAlign: TextAlign.center,
               style: AppTextStyles.appTitle,
             ),
             const SizedBox(height: 6),
             Text(
-              eventName == null ? '오늘은 수업이 없어요' : '오늘은 쉬는 날!',
+              eventName == null ? '오늘 수업은 없어요' : '오늘 시간표는 없어요',
               textAlign: TextAlign.center,
               style: AppTextStyles.body.copyWith(color: AppColors.skyDark),
             ),

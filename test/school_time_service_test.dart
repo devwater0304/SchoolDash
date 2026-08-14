@@ -41,7 +41,7 @@ void main() {
   });
 
   test('reports after classes and derives timetable item states', () {
-    final status = statusAt(14, 10);
+    final status = statusAt(16, 10);
 
     expect(status.type, SchoolStatusType.afterClasses);
     expect(
@@ -58,5 +58,11 @@ void main() {
       ),
       ClassStatus.completed,
     );
+  });
+
+  test('uses the corrected fifth through seventh period bell times', () {
+    expect(sampleClassSchedule[4].time, '13:25 – 14:10');
+    expect(sampleClassSchedule[5].time, '14:20 – 15:05');
+    expect(sampleClassSchedule[6].time, '15:15 – 16:00');
   });
 }

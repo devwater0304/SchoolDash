@@ -20,6 +20,6 @@ void main() {
     expect(classes.map((item) => item.subject), ['국어', '체육', '미술']);
     expect(classes[0].startMinute, 8 * 60 + 50);
     expect(classes[1].endMinute, 10 * 60 + 30);
-    expect(classes[2].hasBellTime, isFalse);
+    expect(classes[2].time, '14:20 – 15:05');
   });
 }

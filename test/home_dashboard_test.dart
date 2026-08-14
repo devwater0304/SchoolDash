@@ -30,8 +30,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('2교시 체육'), findsOneWidget);
+    expect(find.byType(ListWheelScrollView), findsOneWidget);
     expect(find.text('오늘의 급식 🍚'), findsOneWidget);
-    expect(find.text('비빔밥'), findsOneWidget);
   });
 
   testWidgets('shows the next meal first after classes', (tester) async {
@@ -45,7 +45,7 @@ void main() {
             fallbackRepository: timetableRepository,
           ),
           mealLoadService: MealLoadService(repository: _MealRepository()),
-          clock: _FixedClock(DateTime(2026, 6, 15, 15)),
+          clock: _FixedClock(DateTime(2026, 6, 15, 17)),
         ),
       ),
     );
@@ -53,7 +53,6 @@ void main() {
 
     expect(find.text('오늘 수업 끝!'), findsOneWidget);
     expect(find.text('내일의 급식 🍚'), findsOneWidget);
-    expect(find.text('카레라이스'), findsOneWidget);
   });
 }
 

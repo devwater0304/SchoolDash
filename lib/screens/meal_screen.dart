@@ -204,9 +204,16 @@ class _MainMealCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentMeal = meal;
     if (currentMeal == null) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 46),
-        child: Center(child: Text('오늘은 급식이 없어요.', style: AppTextStyles.body)),
+      return Container(
+        constraints: const BoxConstraints(minHeight: 210),
+        padding: const EdgeInsets.all(AppSpacing.section),
+        decoration: BoxDecoration(
+          color: AppColors.skyPale,
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        ),
+        child: const Center(
+          child: Text('오늘은 급식이 없어요.', style: AppTextStyles.body),
+        ),
       );
     }
     return Container(
@@ -222,15 +229,37 @@ class _MainMealCard extends StatelessWidget {
           const SizedBox(height: 3),
           Text(_dateLabel(currentMeal.date), style: AppTextStyles.cardTitle),
           const SizedBox(height: AppSpacing.medium),
-          ...currentMeal.menus.map(
-            (menu) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                '• ${_readableMenu(menu)}',
-                style: AppTextStyles.body,
+          if (currentMeal.menus.length >= 5) ...[
+            Text(
+              _readableMenu(currentMeal.menus[4]),
+              style: AppTextStyles.cardTitle,
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              child: Divider(color: AppColors.sky),
+            ),
+            ...currentMeal.menus.indexed
+                .where((entry) => entry.$1 != 4)
+                .map(
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '• ${_readableMenu(entry.$2)}',
+                      style: AppTextStyles.body,
+                    ),
+                  ),
+                ),
+          ] else ...[
+            ...currentMeal.menus.map(
+              (menu) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '• ${_readableMenu(menu)}',
+                  style: AppTextStyles.body,
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

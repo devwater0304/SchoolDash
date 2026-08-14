@@ -20,7 +20,7 @@ void main() {
   final sampleSchoolRepository = SampleSchoolRepository();
   final schoolRepository = NeisSchoolRepository(
     config: const NeisApiConfig.fromEnvironment(),
-    localTimeTemplate: sampleClassSchedule,
+    localTimeTemplate: localBellTimeTemplate,
   );
   final appDateController = AppDateController();
   runApp(
