@@ -14,6 +14,7 @@ class SchoolDashShell extends StatefulWidget {
     required this.profile,
     required this.timetableLoadService,
     this.mealLoadService,
+    this.dateController,
     required this.clock,
     super.key,
   });
@@ -22,6 +23,7 @@ class SchoolDashShell extends StatefulWidget {
   final TimetableLoadService timetableLoadService;
   final MealLoadService? mealLoadService;
   final AppClock clock;
+  final AppDateController? dateController;
 
   @override
   State<SchoolDashShell> createState() => _SchoolDashShellState();
@@ -40,12 +42,14 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             profile: widget.profile,
             timetableLoadService: widget.timetableLoadService,
             clock: widget.clock,
+            dateController: widget.dateController,
             isActive: _selectedIndex == 0,
           ),
           HomeScreen(
             profile: widget.profile,
             timetableLoadService: widget.timetableLoadService,
             clock: widget.clock,
+            dateController: widget.dateController,
           ),
           if (widget.mealLoadService case final mealLoadService?)
             MealScreen(
@@ -53,6 +57,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
               mealLoadService: mealLoadService,
               timetableLoadService: widget.timetableLoadService,
               clock: widget.clock,
+              dateController: widget.dateController,
               isActive: _selectedIndex == 2,
             )
           else

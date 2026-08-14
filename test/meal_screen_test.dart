@@ -37,6 +37,31 @@ void main() {
     expect(find.text('다음 급식 · 6/17'), findsOneWidget);
     expect(find.text('• 김치볶음밥'), findsOneWidget);
   });
+
+  testWidgets('uses a compact message when lunch is normally unavailable', (
+    tester,
+  ) async {
+    await _pumpMealScreen(
+      tester,
+      DateTime(2026, 6, 15, 9),
+      repository: _EmptyMealRepository(),
+    );
+
+    expect(find.text('오늘은 급식이 없어요.'), findsOneWidget);
+    expect(find.byIcon(Icons.restaurant_outlined), findsNothing);
+  });
+
+  testWidgets('opens meal history inside the meal tab', (tester) async {
+    await _pumpMealScreen(tester, DateTime(2026, 6, 15, 9));
+
+    await tester.scrollUntilVisible(find.text('전체 급식표 보기'), 180);
+    await tester.tap(find.text('전체 급식표 보기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('전체 급식표'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('다음 2주 보기'), 180);
+    expect(find.text('다음 2주 보기'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpMealScreen(
@@ -108,6 +133,15 @@ class _SparseMealRepository implements MealRepository {
       menus: const ['김치볶음밥'],
     ),
   ];
+}
+
+class _EmptyMealRepository implements MealRepository {
+  @override
+  Future<List<Meal>> getMeals({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => const [];
 }
 
 class _FixedClock implements AppClock {

@@ -22,6 +22,7 @@ void main() {
     config: const NeisApiConfig.fromEnvironment(),
     localTimeTemplate: sampleClassSchedule,
   );
+  final appDateController = AppDateController();
   runApp(
     SchoolDashApp(
       profileRepository: LocalSchoolProfileRepository(
@@ -36,7 +37,8 @@ void main() {
         fallbackRepository: sampleSchoolRepository,
       ),
       mealLoadService: MealLoadService(repository: schoolRepository),
-      clock: const SystemAppClock(),
+      clock: appDateController,
+      dateController: appDateController,
     ),
   );
 }
@@ -48,6 +50,7 @@ class SchoolDashApp extends StatelessWidget {
     required this.schoolSearchRepository,
     required this.timetableLoadService,
     this.mealLoadService,
+    this.dateController,
     required this.clock,
     super.key,
   });
@@ -58,6 +61,7 @@ class SchoolDashApp extends StatelessWidget {
   final TimetableLoadService timetableLoadService;
   final MealLoadService? mealLoadService;
   final AppClock clock;
+  final AppDateController? dateController;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +76,7 @@ class SchoolDashApp extends StatelessWidget {
         timetableLoadService: timetableLoadService,
         mealLoadService: mealLoadService,
         clock: clock,
+        dateController: dateController,
       ),
     );
   }

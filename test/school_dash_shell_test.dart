@@ -47,6 +47,15 @@ void main() {
     await tester.tap(find.text('급식'));
     await tester.pumpAndSettle();
     expect(find.text('오늘의 급식'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('전체 급식표 보기'), 180);
+    await tester.tap(find.text('전체 급식표 보기'));
+    await tester.pumpAndSettle();
+    expect(find.text('전체 급식표'), findsOneWidget);
+
+    await tester.tap(find.text('홈'));
+    await tester.pumpAndSettle();
+    expect(find.text('SchoolDash'), findsOneWidget);
   });
 }
 

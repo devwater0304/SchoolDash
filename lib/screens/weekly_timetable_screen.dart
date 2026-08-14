@@ -17,6 +17,7 @@ class WeeklyTimetableScreen extends StatefulWidget {
     required this.timetableLoadService,
     required this.clock,
     required this.isActive,
+    this.dateController,
     super.key,
   });
 
@@ -24,6 +25,7 @@ class WeeklyTimetableScreen extends StatefulWidget {
   final TimetableLoadService timetableLoadService;
   final AppClock clock;
   final bool isActive;
+  final AppDateController? dateController;
 
   @override
   State<WeeklyTimetableScreen> createState() => _WeeklyTimetableScreenState();
@@ -42,6 +44,7 @@ class _WeeklyTimetableScreenState extends State<WeeklyTimetableScreen> {
   void initState() {
     super.initState();
     _weekStart = _weekDateService.startOfWeek(widget.clock.now());
+    widget.dateController?.addListener(_onAppDateChanged);
     if (widget.isActive) _loadWeek();
   }
 
@@ -49,10 +52,32 @@ class _WeeklyTimetableScreenState extends State<WeeklyTimetableScreen> {
   void didUpdateWidget(covariant WeeklyTimetableScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isActive && !oldWidget.isActive && !_hasLoaded) _loadWeek();
+    if (oldWidget.dateController != widget.dateController) {
+      oldWidget.dateController?.removeListener(_onAppDateChanged);
+      widget.dateController?.addListener(_onAppDateChanged);
+    }
+  }
+
+  void _onAppDateChanged() {
+    if (!mounted) return;
+    setState(() {
+      _weekStart = _weekDateService.startOfWeek(widget.clock.now());
+      _results = const {};
+      _hasLoaded = false;
+      _hasLoadError = false;
+    });
+    if (widget.isActive) _loadWeek();
+  }
+
+  @override
+  void dispose() {
+    widget.dateController?.removeListener(_onAppDateChanged);
+    super.dispose();
   }
 
   Future<void> _loadWeek() async {
-    final dates = _weekDateService.weekdaysFor(_weekStart);
+    final requestedWeekStart = _weekStart;
+    final dates = _weekDateService.weekdaysFor(requestedWeekStart);
     setState(() {
       _isLoading = true;
       _hasLoadError = false;
@@ -62,7 +87,7 @@ class _WeeklyTimetableScreenState extends State<WeeklyTimetableScreen> {
         profile: widget.profile,
         dates: dates,
       );
-      if (!mounted) return;
+      if (!mounted || !_sameDate(_weekStart, requestedWeekStart)) return;
       setState(() {
         _results = Map.unmodifiable({
           for (var index = 0; index < dates.length; index++)
@@ -71,14 +96,16 @@ class _WeeklyTimetableScreenState extends State<WeeklyTimetableScreen> {
         _hasLoaded = true;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || !_sameDate(_weekStart, requestedWeekStart)) return;
       setState(() {
         _results = const {};
         _hasLoaded = true;
         _hasLoadError = true;
       });
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && _sameDate(_weekStart, requestedWeekStart)) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

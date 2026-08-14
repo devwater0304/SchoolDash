@@ -18,6 +18,7 @@ class AppStartGate extends StatefulWidget {
     required this.schoolSearchRepository,
     required this.timetableLoadService,
     this.mealLoadService,
+    this.dateController,
     required this.clock,
     super.key,
   });
@@ -28,6 +29,7 @@ class AppStartGate extends StatefulWidget {
   final TimetableLoadService timetableLoadService;
   final MealLoadService? mealLoadService;
   final AppClock clock;
+  final AppDateController? dateController;
 
   @override
   State<AppStartGate> createState() => _AppStartGateState();
@@ -72,6 +74,7 @@ class _AppStartGateState extends State<AppStartGate> {
       timetableLoadService: widget.timetableLoadService,
       mealLoadService: widget.mealLoadService,
       clock: widget.clock,
+      dateController: widget.dateController,
     );
   }
 }

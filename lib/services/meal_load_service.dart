@@ -19,10 +19,31 @@ class MealLoadService {
     // One request covers today, the three preview dates, and a following
     // weekday when a weekend or holiday has no meal.
     final to = from.add(const Duration(days: 8));
-    final key = _MealCacheKey(profile: profile, from: from, to: to);
+    return loadMeals(profile: profile, from: from, to: to);
+  }
+
+  /// Loads a bounded meal range for the history view. Repeated ranges are
+  /// reused during the current app session.
+  Future<MealLoadResult> loadMeals({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) {
+    final normalizedFrom = _dateOnly(from);
+    final normalizedTo = _dateOnly(to);
+    final key = _MealCacheKey(
+      profile: profile,
+      from: normalizedFrom,
+      to: normalizedTo,
+    );
     return _cache.putIfAbsent(
       key,
-      () => _loadAndCache(profile: profile, from: from, to: to, key: key),
+      () => _loadAndCache(
+        profile: profile,
+        from: normalizedFrom,
+        to: normalizedTo,
+        key: key,
+      ),
     );
   }
 

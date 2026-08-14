@@ -21,12 +21,14 @@ class HomeScreen extends StatefulWidget {
     required this.profile,
     required this.timetableLoadService,
     required this.clock,
+    this.dateController,
     super.key,
   });
 
   final SchoolProfile profile;
   final TimetableLoadService timetableLoadService;
   final AppClock clock;
+  final AppDateController? dateController;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -43,10 +45,30 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _now = widget.clock.now();
+    widget.dateController?.addListener(_onAppDateChanged);
     _loadDayData(_now);
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       _refreshNow();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dateController != widget.dateController) {
+      oldWidget.dateController?.removeListener(_onAppDateChanged);
+      widget.dateController?.addListener(_onAppDateChanged);
+    }
+  }
+
+  void _onAppDateChanged() {
+    final now = widget.clock.now();
+    if (!mounted) return;
+    setState(() {
+      _now = now;
+      _timetableResult = null;
+    });
+    _loadDayData(now);
   }
 
   void _refreshNow() {
@@ -93,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _clockTimer?.cancel();
+    widget.dateController?.removeListener(_onAppDateChanged);
     super.dispose();
   }
 
@@ -121,7 +144,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 AppSpacing.large,
               ),
               children: [
-                _Header(dateLabel: dateLabel),
+                _Header(
+                  dateLabel: dateLabel,
+                  isUsingSelectedDate:
+                      widget.dateController?.isUsingSelectedDate ?? false,
+                  onDateTap: widget.dateController == null
+                      ? null
+                      : _showDatePicker,
+                ),
                 const SizedBox(height: AppSpacing.large),
                 CurrentStatusCard(
                   status: schoolStatus,
@@ -178,6 +208,43 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showDatePicker() async {
+    final controller = widget.dateController;
+    if (controller == null) return;
+    final useCurrent = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.today_outlined),
+              title: const Text('현재 날짜 사용'),
+              onTap: () => Navigator.pop(context, true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('날짜 선택'),
+              onTap: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || useCurrent == null) return;
+    if (useCurrent) {
+      controller.useCurrentDate();
+      return;
+    }
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: controller.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked != null) controller.selectDate(picked);
   }
 }
 
@@ -285,9 +352,15 @@ DateTime _dateOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
 class _Header extends StatelessWidget {
-  const _Header({required this.dateLabel});
+  const _Header({
+    required this.dateLabel,
+    required this.isUsingSelectedDate,
+    this.onDateTap,
+  });
 
   final String dateLabel;
+  final bool isUsingSelectedDate;
+  final VoidCallback? onDateTap;
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +372,22 @@ class _Header extends StatelessWidget {
           children: [
             const Text('SchoolDash', style: AppTextStyles.appTitle),
             const SizedBox(height: 4),
-            Text(dateLabel, style: AppTextStyles.caption),
+            GestureDetector(
+              onTap: onDateTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(dateLabel, style: AppTextStyles.caption),
+                    if (isUsingSelectedDate) ...[
+                      const SizedBox(width: 5),
+                      const Icon(Icons.edit_calendar_outlined, size: 14),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
         Container(
