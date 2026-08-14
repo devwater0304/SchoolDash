@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../config/neis_api_config.dart';
 import '../models/class_schedule.dart';
 import '../models/daily_timetable.dart';
+import '../models/period_subject.dart';
 import '../models/school_event.dart';
 import '../models/school_level.dart';
 import '../models/school_profile.dart';
@@ -38,6 +39,20 @@ class NeisSchoolRepository implements SchoolRepository {
     required SchoolProfile profile,
     required DateTime date,
   }) async {
+    final timetables = await getTimetables(
+      profile: profile,
+      from: date,
+      to: date,
+    );
+    return timetables.isEmpty ? null : timetables.first;
+  }
+
+  @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async {
     final educationOfficeCode = profile.educationOfficeCode;
     final standardSchoolCode = profile.standardSchoolCode;
     if (!config.isConfigured) {
@@ -52,7 +67,11 @@ class NeisSchoolRepository implements SchoolRepository {
       throw const TimetableFailure(TimetableFailureType.unsupportedSchoolType);
     }
 
-    final dateOnly = DateTime(date.year, date.month, date.day);
+    final fromDate = _dateOnly(from);
+    final toDate = _dateOnly(to);
+    if (toDate.isBefore(fromDate)) {
+      throw const TimetableFailure(TimetableFailureType.invalidResponse);
+    }
     final uri = Uri.parse('${config.baseUri}/$endpoint').replace(
       queryParameters: {
         'KEY': config.apiKey,
@@ -61,9 +80,10 @@ class NeisSchoolRepository implements SchoolRepository {
         'pSize': '100',
         'ATPT_OFCDC_SC_CODE': educationOfficeCode,
         'SD_SCHUL_CODE': standardSchoolCode,
-        'AY': dateOnly.year.toString(),
-        'SEM': _semesterFor(dateOnly).toString(),
-        'ALL_TI_YMD': _formatNeisDate(dateOnly),
+        'AY': fromDate.year.toString(),
+        'SEM': _semesterFor(fromDate).toString(),
+        'TI_FROM_YMD': _formatNeisDate(fromDate),
+        'TI_TO_YMD': _formatNeisDate(toDate),
         'GRADE': profile.grade.toString(),
         'CLASS_NM': profile.classNumber.toString(),
       },
@@ -91,12 +111,12 @@ class NeisSchoolRepository implements SchoolRepository {
 
       final timetableSections = decoded[endpoint];
       if (timetableSections is! List || timetableSections.isEmpty) {
-        return null;
+        return const [];
       }
 
       final result = _readResult(timetableSections);
       if (result != null && result.code != 'INFO-000') {
-        if (result.code == 'INFO-200') return null;
+        if (result.code == 'INFO-200') return const [];
         throw TimetableFailure(
           TimetableFailureType.api,
           message: result.message,
@@ -107,11 +127,22 @@ class NeisSchoolRepository implements SchoolRepository {
           .map(NeisTimetableDto.fromJson)
           .map((dto) => dto.toPeriodSubject())
           .toList(growable: false);
-      final classes = _mergeService.merge(
-        periodSubjects: periodSubjects,
-        localTimeTemplate: _localTimeTemplate,
-      );
-      return DailyTimetable(date: dateOnly, classes: classes);
+      final subjectsByDate = <DateTime, List<PeriodSubject>>{};
+      for (final periodSubject in periodSubjects) {
+        final date = _dateOnly(periodSubject.date);
+        if (date.isBefore(fromDate) || date.isAfter(toDate)) continue;
+        (subjectsByDate[date] ??= []).add(periodSubject);
+      }
+      final timetables = subjectsByDate.entries.map((entry) {
+        return DailyTimetable(
+          date: entry.key,
+          classes: _mergeService.merge(
+            periodSubjects: entry.value,
+            localTimeTemplate: _localTimeTemplate,
+          ),
+        );
+      }).toList()..sort((a, b) => a.date.compareTo(b.date));
+      return List.unmodifiable(timetables);
     } on TimetableFailure {
       rethrow;
     } on FormatException {
@@ -129,8 +160,8 @@ class NeisSchoolRepository implements SchoolRepository {
   }) =>
       calendarRepository.getSchoolEvents(profile: profile, from: from, to: to);
 
-  DailyTimetable? _handleRootResult(_NeisResult result) {
-    if (result.code == 'INFO-200') return null;
+  List<DailyTimetable> _handleRootResult(_NeisResult result) {
+    if (result.code == 'INFO-200') return const [];
     throw TimetableFailure(TimetableFailureType.api, message: result.message);
   }
 
@@ -169,6 +200,9 @@ class NeisSchoolRepository implements SchoolRepository {
   }
 
   int _semesterFor(DateTime date) => date.month <= 7 ? 1 : 2;
+
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   String _formatNeisDate(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}'

@@ -15,41 +15,41 @@ class SchoolTimeService {
     required DateTime now,
     required List<ClassSchedule> schedule,
   }) {
-    if (schedule.isEmpty) {
+    final classes = schedule.where((item) => item.hasBellTime).toList()
+      ..sort((a, b) => a.startMinute!.compareTo(b.startMinute!));
+    if (classes.isEmpty) {
       return const SchoolTimeStatus(
         type: SchoolStatusType.noClasses,
         remaining: Duration.zero,
       );
     }
 
-    final classes = [...schedule]
-      ..sort((a, b) => a.startMinute.compareTo(b.startMinute));
     final currentMinute = now.hour * 60 + now.minute;
     final firstClass = classes.first;
 
-    if (currentMinute < firstClass.startMinute) {
+    if (currentMinute < firstClass.startMinute!) {
       return SchoolTimeStatus(
         type: SchoolStatusType.beforeClasses,
         nextClass: firstClass,
-        remaining: Duration(minutes: firstClass.startMinute - currentMinute),
+        remaining: Duration(minutes: firstClass.startMinute! - currentMinute),
       );
     }
 
     for (var index = 0; index < classes.length; index++) {
       final currentClass = classes[index];
-      if (currentMinute >= currentClass.startMinute &&
-          currentMinute < currentClass.endMinute) {
+      if (currentMinute >= currentClass.startMinute! &&
+          currentMinute < currentClass.endMinute!) {
         return SchoolTimeStatus(
           type: SchoolStatusType.duringClass,
           currentClass: currentClass,
-          remaining: Duration(minutes: currentClass.endMinute - currentMinute),
+          remaining: Duration(minutes: currentClass.endMinute! - currentMinute),
         );
       }
 
       final hasNextClass = index < classes.length - 1;
-      if (hasNextClass && currentMinute < classes[index + 1].startMinute) {
+      if (hasNextClass && currentMinute < classes[index + 1].startMinute!) {
         final nextClass = classes[index + 1];
-        final gap = nextClass.startMinute - currentClass.endMinute;
+        final gap = nextClass.startMinute! - currentClass.endMinute!;
         final isLunchBreak = gap >= lunchBreakThreshold.inMinutes;
 
         return SchoolTimeStatus(
@@ -57,7 +57,7 @@ class SchoolTimeService {
               ? SchoolStatusType.lunchTime
               : SchoolStatusType.breakTime,
           nextClass: nextClass,
-          remaining: Duration(minutes: nextClass.startMinute - currentMinute),
+          remaining: Duration(minutes: nextClass.startMinute! - currentMinute),
         );
       }
     }
@@ -72,11 +72,12 @@ class SchoolTimeService {
     required ClassSchedule schedule,
     required DateTime now,
   }) {
+    if (!schedule.hasBellTime) return ClassStatus.upcoming;
     final currentMinute = now.hour * 60 + now.minute;
-    if (currentMinute >= schedule.endMinute) {
+    if (currentMinute >= schedule.endMinute!) {
       return ClassStatus.completed;
     }
-    if (currentMinute >= schedule.startMinute) {
+    if (currentMinute >= schedule.startMinute!) {
       return ClassStatus.current;
     }
     return ClassStatus.upcoming;

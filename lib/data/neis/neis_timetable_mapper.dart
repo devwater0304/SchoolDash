@@ -3,5 +3,5 @@ import 'neis_timetable_dto.dart';
 
 extension NeisTimetableMapper on NeisTimetableDto {
   PeriodSubject toPeriodSubject() =>
-      PeriodSubject(period: period, subject: subject);
+      PeriodSubject(date: date, period: period, subject: subject);
 }

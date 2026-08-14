@@ -35,7 +35,7 @@ void main() {
         primaryRepository: schoolRepository,
         fallbackRepository: sampleSchoolRepository,
       ),
-      clock: SystemAppClock.fromEnvironment(),
+      clock: const SystemAppClock(),
     ),
   );
 }

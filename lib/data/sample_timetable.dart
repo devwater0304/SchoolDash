@@ -75,6 +75,24 @@ class SampleSchoolRepository implements SchoolRepository {
   }
 
   @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final timetables = <DailyTimetable>[];
+    for (
+      var date = _dateOnly(from);
+      !date.isAfter(_dateOnly(to));
+      date = date.add(const Duration(days: 1))
+    ) {
+      final timetable = await getTimetable(profile: profile, date: date);
+      if (timetable != null) timetables.add(timetable);
+    }
+    return List.unmodifiable(timetables);
+  }
+
+  @override
   Future<List<SchoolEvent>> getSchoolEvents({
     required SchoolProfile profile,
     required DateTime from,

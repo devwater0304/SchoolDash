@@ -53,6 +53,13 @@ class _FailingTimetableRepository implements SchoolRepository {
     required SchoolProfile profile,
     required DateTime date,
   }) async => throw const TimetableFailure(TimetableFailureType.network);
+
+  @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => throw const TimetableFailure(TimetableFailureType.network);
 }
 
 class _SampleTimetableRepository implements SchoolRepository {
@@ -68,6 +75,13 @@ class _SampleTimetableRepository implements SchoolRepository {
     required SchoolProfile profile,
     required DateTime date,
   }) async => DailyTimetable(date: date, classes: sampleClassSchedule);
+
+  @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => [DailyTimetable(date: from, classes: sampleClassSchedule)];
 }
 
 class _FixedClock implements AppClock {

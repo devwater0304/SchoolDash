@@ -8,15 +8,6 @@
       "toolArgs": [
         "--dart-define-from-file=.env"
       ]
-    },
-    {
-      "name": "SchoolDash (NEIS · test date)",
-      "request": "launch",
-      "type": "dart",
-      "toolArgs": [
-        "--dart-define-from-file=.env",
-        "--dart-define=SCHOOLDASH_DEBUG_DATE=2026-06-15"
-      ]
     }
   ]
 }

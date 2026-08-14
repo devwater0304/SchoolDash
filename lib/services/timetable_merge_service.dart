@@ -17,14 +17,13 @@ class TimetableMergeService {
 
     for (final periodSubject in periodSubjects) {
       final localTime = timeByPeriod[periodSubject.period];
-      if (localTime == null) continue;
       classes.add(
         ClassSchedule(
           period: periodSubject.period,
           subject: periodSubject.subject,
           teacher: '',
-          startMinute: localTime.startMinute,
-          endMinute: localTime.endMinute,
+          startMinute: localTime?.startMinute,
+          endMinute: localTime?.endMinute,
         ),
       );
     }

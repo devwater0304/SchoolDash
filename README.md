@@ -69,12 +69,6 @@ NEIS 응답에 오늘 시간표가 없으면 수업이 없는 날이라고 단�
 
 홈과 주간 시간표는 같은 `TimetableLoadService`를 사용합니다. 이 서비스가 날짜별 NEIS 조회, 시간표 없음, 그리고 API 실패 시 샘플 fallback을 한 곳에서 처리합니다.
 
-## 개발용 날짜 테스트
-
-VS Code의 `SchoolDash (NEIS · test date)` 실행 구성을 선택하면 `2026-06-15`를 앱의 오늘 날짜로 사용합니다. 날짜를 바꾸려면 [.vscode/launch.json](.vscode/launch.json)의 `SCHOOLDASH_DEBUG_DATE=YYYY-MM-DD` 값만 수정하면 됩니다.
-
-이 값은 디버그/프로파일 실행에서만 적용되며 Release 빌드에서는 항상 실제 기기 날짜를 사용합니다.
-
 ## 글꼴
 
 앱 전체 기본 글꼴은 SUIT입니다. Thin부터 Heavy까지 제공된 9개 굵기를 모두 등록했으므로 제목과 강조 텍스트는 실제 굵기 파일을 사용합니다. 학교 검색 입력창에는 운영체제의 한국어 글꼴 fallback도 지정해 한글 조합 입력을 안정적으로 처리합니다.

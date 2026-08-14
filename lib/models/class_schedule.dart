@@ -5,18 +5,24 @@ class ClassSchedule {
     required this.period,
     required this.subject,
     required this.teacher,
-    required this.startMinute,
-    required this.endMinute,
+    this.startMinute,
+    this.endMinute,
   });
 
   final int period;
   final String subject;
   final String teacher;
-  final int startMinute;
-  final int endMinute;
 
-  String get time =>
-      '${_formatMinute(startMinute)} – ${_formatMinute(endMinute)}';
+  /// The local bell time is intentionally optional: NEIS can provide a later
+  /// period before its school-specific bell time has been configured.
+  final int? startMinute;
+  final int? endMinute;
+
+  bool get hasBellTime => startMinute != null && endMinute != null;
+
+  String get time => hasBellTime
+      ? '${_formatMinute(startMinute!)} – ${_formatMinute(endMinute!)}'
+      : '시간 미설정';
 
   static String _formatMinute(int totalMinutes) {
     final hour = totalMinutes ~/ 60;

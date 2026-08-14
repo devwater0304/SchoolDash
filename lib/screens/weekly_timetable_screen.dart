@@ -113,11 +113,8 @@ class _WeeklyTimetableScreenState extends State<WeeklyTimetableScreen> {
                   onNext: () => _changeWeek(1),
                 ),
                 const SizedBox(height: AppSpacing.section),
-                if (_isLoading && !_hasLoaded)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
+                if (_isLoading)
+                  const _WeeklyTimetableSkeleton()
                 else if (_hasLoadError)
                   const _WeeklyMessage(message: '시간표를 불러오지 못했어요. 다시 시도해 주세요.')
                 else if (_hasLoaded)
@@ -199,6 +196,9 @@ class _WeeklyGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_periods.isEmpty) {
+      return const _WeeklyMessage(message: '이번 주 시간표가 없어요.');
+    }
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Container(
@@ -247,7 +247,62 @@ class _WeeklyGrid extends StatelessWidget {
             .toSet()
             .toList()
           ..sort();
-    return resultPeriods.isEmpty ? const [1, 2, 3, 4, 5] : resultPeriods;
+    return resultPeriods;
+  }
+}
+
+class _WeeklyTimetableSkeleton extends StatelessWidget {
+  const _WeeklyTimetableSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 246,
+      padding: const EdgeInsets.all(AppSpacing.section),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.line),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              _SkeletonBlock(width: 72, height: 18),
+              SizedBox(width: 12),
+              _SkeletonBlock(width: 88, height: 18),
+              SizedBox(width: 12),
+              _SkeletonBlock(width: 64, height: 18),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          for (var index = 0; index < 3; index++) ...[
+            const _SkeletonBlock(width: double.infinity, height: 30),
+            if (index < 2) const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonBlock extends StatelessWidget {
+  const _SkeletonBlock({required this.width, required this.height});
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.skyPale,
+        borderRadius: BorderRadius.circular(10),
+      ),
+    );
   }
 }
 

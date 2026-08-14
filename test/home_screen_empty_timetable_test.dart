@@ -53,6 +53,13 @@ class _EmptyTimetableRepository implements SchoolRepository {
     required SchoolProfile profile,
     required DateTime date,
   }) async => null;
+
+  @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => const [];
 }
 
 class _FixedClock implements AppClock {

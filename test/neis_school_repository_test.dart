@@ -29,7 +29,7 @@ void main() {
         client: client,
       );
 
-  test('requests the school-level endpoint and merges NEIS subjects', () async {
+  test('requests a date range once and groups NEIS subjects by date', () async {
     final repository = repositoryFor(
       MockClient((request) async {
         expect(request.url.path, '/hub/misTimetable');
@@ -37,19 +37,26 @@ void main() {
         expect(request.url.queryParameters['SD_SCHUL_CODE'], '7010569');
         expect(request.url.queryParameters['GRADE'], '2');
         expect(request.url.queryParameters['CLASS_NM'], '3');
-        expect(request.url.queryParameters['ALL_TI_YMD'], '20260814');
-        return _jsonResponse(_successResponse);
+        expect(request.url.queryParameters['TI_FROM_YMD'], '20260810');
+        expect(request.url.queryParameters['TI_TO_YMD'], '20260814');
+        expect(request.url.queryParameters.containsKey('ALL_TI_YMD'), isFalse);
+        return _jsonResponse(_weeklySuccessResponse);
       }),
     );
 
-    final timetable = await repository.getTimetable(
+    final timetables = await repository.getTimetables(
       profile: profile,
-      date: DateTime(2026, 8, 14),
+      from: DateTime(2026, 8, 10),
+      to: DateTime(2026, 8, 14),
     );
 
-    expect(timetable?.classes.map((item) => item.subject), ['국어', '체육']);
-    expect(timetable?.classes[0].startMinute, 8 * 60 + 50);
-    expect(timetable?.classes[1].endMinute, 10 * 60 + 30);
+    expect(timetables, hasLength(2));
+    expect(timetables[0].date, DateTime(2026, 8, 10));
+    expect(timetables[0].classes.map((item) => item.subject), ['국어', '체육']);
+    expect(timetables[0].classes[0].startMinute, 8 * 60 + 50);
+    expect(timetables[0].classes[1].endMinute, 10 * 60 + 30);
+    expect(timetables[1].classes.single.period, 7);
+    expect(timetables[1].classes.single.hasBellTime, isFalse);
   });
 
   test('uses the elementary endpoint for elementary school profiles', () async {
@@ -113,7 +120,7 @@ void main() {
             },
             {
               'row': [
-                {'PERIO': '교시', 'ITRT_CNTNT': '국어'},
+                {'ALL_TI_YMD': '20260814', 'PERIO': '교시', 'ITRT_CNTNT': '국어'},
               ],
             },
           ],
@@ -134,7 +141,7 @@ void main() {
   });
 }
 
-const _successResponse = {
+const _weeklySuccessResponse = {
   'misTimetable': [
     {
       'head': [
@@ -146,8 +153,9 @@ const _successResponse = {
     },
     {
       'row': [
-        {'PERIO': '1', 'ITRT_CNTNT': '국어'},
-        {'PERIO': '2', 'ITRT_CNTNT': '체육'},
+        {'ALL_TI_YMD': '20260810', 'PERIO': '1', 'ITRT_CNTNT': '국어'},
+        {'ALL_TI_YMD': '20260810', 'PERIO': '2', 'ITRT_CNTNT': '체육'},
+        {'ALL_TI_YMD': '20260814', 'PERIO': '7', 'ITRT_CNTNT': '진로'},
       ],
     },
   ],
