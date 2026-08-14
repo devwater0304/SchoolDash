@@ -11,6 +11,7 @@ import 'repositories/school_profile_repository.dart';
 import 'repositories/school_search_repository.dart';
 import 'screens/app_start_gate.dart';
 import 'services/app_clock.dart';
+import 'services/meal_load_service.dart';
 import 'services/timetable_load_service.dart';
 import 'theme/app_theme.dart';
 
@@ -34,6 +35,7 @@ void main() {
         primaryRepository: schoolRepository,
         fallbackRepository: sampleSchoolRepository,
       ),
+      mealLoadService: MealLoadService(repository: schoolRepository),
       clock: const SystemAppClock(),
     ),
   );
@@ -45,6 +47,7 @@ class SchoolDashApp extends StatelessWidget {
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
     required this.timetableLoadService,
+    this.mealLoadService,
     required this.clock,
     super.key,
   });
@@ -53,6 +56,7 @@ class SchoolDashApp extends StatelessWidget {
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
   final TimetableLoadService timetableLoadService;
+  final MealLoadService? mealLoadService;
   final AppClock clock;
 
   @override
@@ -66,6 +70,7 @@ class SchoolDashApp extends StatelessWidget {
         nearbySchoolRepository: nearbySchoolRepository,
         schoolSearchRepository: schoolSearchRepository,
         timetableLoadService: timetableLoadService,
+        mealLoadService: mealLoadService,
         clock: clock,
       ),
     );

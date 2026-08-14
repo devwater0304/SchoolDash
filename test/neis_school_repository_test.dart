@@ -6,6 +6,8 @@ import 'package:http/testing.dart';
 import 'package:school_dash/config/neis_api_config.dart';
 import 'package:school_dash/data/neis_school_repository.dart';
 import 'package:school_dash/data/sample_timetable.dart';
+import 'package:school_dash/models/meal.dart';
+import 'package:school_dash/models/meal_failure.dart';
 import 'package:school_dash/models/school_profile.dart';
 import 'package:school_dash/models/school_event.dart';
 import 'package:school_dash/models/timetable_failure.dart';
@@ -175,6 +177,84 @@ void main() {
       );
     },
   );
+
+  test(
+    'requests lunch meals for a range and maps readable menu items',
+    () async {
+      final repository = repositoryFor(
+        MockClient((request) async {
+          expect(request.url.path, '/hub/mealServiceDietInfo');
+          expect(request.url.queryParameters['MLSV_FROM_YMD'], '20260615');
+          expect(request.url.queryParameters['MLSV_TO_YMD'], '20260618');
+          expect(request.url.queryParameters['MMEAL_SC_CODE'], '2');
+          return _jsonResponse({
+            'mealServiceDietInfo': [
+              {
+                'head': [
+                  {
+                    'RESULT': {'CODE': 'INFO-000', 'MESSAGE': '정상'},
+                  },
+                ],
+              },
+              {
+                'row': [
+                  {
+                    'MLSV_YMD': '20260615',
+                    'MMEAL_SC_CODE': '2',
+                    'DDISH_NM': '현미밥(5.)<br/>된장국(5.6.)<br/>깍두기(9.)',
+                    'CAL_INFO': '650 Kcal',
+                  },
+                ],
+              },
+            ],
+          });
+        }),
+      );
+
+      final meals = await repository.getMeals(
+        profile: profile,
+        from: DateTime(2026, 6, 15),
+        to: DateTime(2026, 6, 18),
+      );
+
+      expect(meals, hasLength(1));
+      expect(meals.single.type, MealType.lunch);
+      expect(meals.single.date, DateTime(2026, 6, 15));
+      expect(meals.single.menus, ['현미밥(5.)', '된장국(5.6.)', '깍두기(9.)']);
+      expect(meals.single.calories, '650 Kcal');
+    },
+  );
+
+  test('reports malformed NEIS meal data safely', () async {
+    final repository = repositoryFor(
+      MockClient(
+        (_) async => _jsonResponse({
+          'mealServiceDietInfo': [
+            {
+              'row': [
+                {'MLSV_YMD': 'invalid', 'MMEAL_SC_CODE': '2', 'DDISH_NM': '밥'},
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+
+    await expectLater(
+      repository.getMeals(
+        profile: profile,
+        from: DateTime(2026, 6, 15),
+        to: DateTime(2026, 6, 15),
+      ),
+      throwsA(
+        isA<MealFailure>().having(
+          (failure) => failure.type,
+          'type',
+          MealFailureType.invalidResponse,
+        ),
+      ),
+    );
+  });
 
   test('reports malformed NEIS timetable data safely', () async {
     final repository = repositoryFor(

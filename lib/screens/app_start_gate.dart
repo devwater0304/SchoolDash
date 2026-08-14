@@ -4,6 +4,7 @@ import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
 import '../repositories/school_search_repository.dart';
 import '../services/app_clock.dart';
+import '../services/meal_load_service.dart';
 import '../services/timetable_load_service.dart';
 import 'school_dash_shell.dart';
 import 'school_onboarding_screen.dart';
@@ -16,6 +17,7 @@ class AppStartGate extends StatefulWidget {
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
     required this.timetableLoadService,
+    this.mealLoadService,
     required this.clock,
     super.key,
   });
@@ -24,6 +26,7 @@ class AppStartGate extends StatefulWidget {
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
   final TimetableLoadService timetableLoadService;
+  final MealLoadService? mealLoadService;
   final AppClock clock;
 
   @override
@@ -67,6 +70,7 @@ class _AppStartGateState extends State<AppStartGate> {
     return SchoolDashShell(
       profile: profile,
       timetableLoadService: widget.timetableLoadService,
+      mealLoadService: widget.mealLoadService,
       clock: widget.clock,
     );
   }

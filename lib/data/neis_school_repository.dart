@@ -5,21 +5,26 @@ import 'package:http/http.dart' as http;
 import '../config/neis_api_config.dart';
 import '../models/class_schedule.dart';
 import '../models/daily_timetable.dart';
+import '../models/meal.dart';
+import '../models/meal_failure.dart';
 import '../models/period_subject.dart';
 import '../models/school_event.dart';
 import '../models/school_level.dart';
 import '../models/school_profile.dart';
 import '../models/timetable_failure.dart';
 import '../repositories/school_repository.dart';
+import '../repositories/meal_repository.dart';
 import '../services/timetable_merge_service.dart';
 import 'neis/neis_timetable_dto.dart';
 import 'neis/neis_timetable_mapper.dart';
 import 'neis/neis_school_schedule_dto.dart';
 import 'neis/neis_school_schedule_mapper.dart';
+import 'neis/neis_meal_dto.dart';
+import 'neis/neis_meal_mapper.dart';
 
 /// Retrieves NEIS timetables and school-calendar rows while leaving bell times
 /// in local app configuration.
-class NeisSchoolRepository implements SchoolRepository {
+class NeisSchoolRepository implements SchoolRepository, MealRepository {
   NeisSchoolRepository({
     required this.config,
     required List<ClassSchedule> localTimeTemplate,
@@ -171,6 +176,80 @@ class NeisSchoolRepository implements SchoolRepository {
     );
   }
 
+  @override
+  Future<List<Meal>> getMeals({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final educationOfficeCode = profile.educationOfficeCode;
+    final standardSchoolCode = profile.standardSchoolCode;
+    if (!config.isConfigured) {
+      throw const MealFailure(MealFailureType.notConfigured);
+    }
+    if (educationOfficeCode == null || standardSchoolCode == null) {
+      throw const MealFailure(MealFailureType.incompleteProfile);
+    }
+    final fromDate = _dateOnly(from);
+    final toDate = _dateOnly(to);
+    if (toDate.isBefore(fromDate)) {
+      throw const MealFailure(MealFailureType.invalidResponse);
+    }
+
+    final uri = Uri.parse('${config.baseUri}/mealServiceDietInfo').replace(
+      queryParameters: {
+        'KEY': config.apiKey,
+        'Type': 'json',
+        'pIndex': '1',
+        'pSize': '1000',
+        'ATPT_OFCDC_SC_CODE': educationOfficeCode,
+        'SD_SCHUL_CODE': standardSchoolCode,
+        'MLSV_FROM_YMD': _formatNeisDate(fromDate),
+        'MLSV_TO_YMD': _formatNeisDate(toDate),
+        'MMEAL_SC_CODE': '2',
+      },
+    );
+
+    http.Response response;
+    try {
+      response = await _client.get(uri);
+    } on Exception {
+      throw const MealFailure(MealFailureType.network);
+    }
+    if (response.statusCode != 200) {
+      throw MealFailure(
+        MealFailureType.network,
+        message: 'HTTP ${response.statusCode}',
+      );
+    }
+
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) throw const FormatException();
+      final rootResult = _readResultFromMap(decoded);
+      if (rootResult != null) return _handleMealResult(rootResult);
+
+      final sections = decoded['mealServiceDietInfo'];
+      if (sections is! List || sections.isEmpty) return const [];
+      final result = _readResult(sections);
+      if (result != null && result.code != 'INFO-000') {
+        return _handleMealResult(result);
+      }
+      return List.unmodifiable(
+        _readRows(sections)
+            .map(NeisMealDto.fromJson)
+            .map((dto) => dto.toMeal())
+            .toList(growable: false),
+      );
+    } on MealFailure {
+      rethrow;
+    } on FormatException {
+      throw const MealFailure(MealFailureType.invalidResponse);
+    } on TypeError {
+      throw const MealFailure(MealFailureType.invalidResponse);
+    }
+  }
+
   Future<List<SchoolEvent>> _loadSchoolEvents({
     required SchoolProfile profile,
     required _DateRange range,
@@ -248,6 +327,11 @@ class NeisSchoolRepository implements SchoolRepository {
   List<SchoolEvent> _handleSchoolScheduleResult(_NeisResult result) {
     if (result.code == 'INFO-200') return const [];
     throw TimetableFailure(TimetableFailureType.api, message: result.message);
+  }
+
+  List<Meal> _handleMealResult(_NeisResult result) {
+    if (result.code == 'INFO-200') return const [];
+    throw MealFailure(MealFailureType.api, message: result.message);
   }
 
   _NeisResult? _readResult(List<dynamic> sections) {

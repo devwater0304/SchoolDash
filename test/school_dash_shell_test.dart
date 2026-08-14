@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:school_dash/data/sample_timetable.dart';
+import 'package:school_dash/models/meal.dart';
 import 'package:school_dash/models/school_profile.dart';
+import 'package:school_dash/repositories/meal_repository.dart';
 import 'package:school_dash/screens/school_dash_shell.dart';
 import 'package:school_dash/services/app_clock.dart';
+import 'package:school_dash/services/meal_load_service.dart';
 import 'package:school_dash/services/timetable_load_service.dart';
 
 void main() {
@@ -19,6 +22,7 @@ void main() {
             primaryRepository: repository,
             fallbackRepository: repository,
           ),
+          mealLoadService: MealLoadService(repository: _TestMealRepository()),
           clock: _FixedClock(DateTime(2026, 6, 15, 9)),
         ),
       ),
@@ -39,6 +43,10 @@ void main() {
     await tester.tap(find.text('홈'));
     await tester.pumpAndSettle();
     expect(find.text('SchoolDash'), findsOneWidget);
+
+    await tester.tap(find.text('급식'));
+    await tester.pumpAndSettle();
+    expect(find.text('오늘의 급식'), findsOneWidget);
   });
 }
 
@@ -57,4 +65,20 @@ class _FixedClock implements AppClock {
 
   @override
   DateTime now() => value;
+}
+
+class _TestMealRepository implements MealRepository {
+  @override
+  Future<List<Meal>> getMeals({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => [
+    Meal(
+      date: DateTime(2026, 6, 15),
+      type: MealType.lunch,
+      rawMenuText: '비빔밥',
+      menus: const ['비빔밥'],
+    ),
+  ];
 }

@@ -2,21 +2,25 @@ import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
 import '../services/app_clock.dart';
+import '../services/meal_load_service.dart';
 import '../services/timetable_load_service.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'home_screen.dart';
+import 'meal_screen.dart';
 import 'weekly_timetable_screen.dart';
 
 class SchoolDashShell extends StatefulWidget {
   const SchoolDashShell({
     required this.profile,
     required this.timetableLoadService,
+    this.mealLoadService,
     required this.clock,
     super.key,
   });
 
   final SchoolProfile profile;
   final TimetableLoadService timetableLoadService;
+  final MealLoadService? mealLoadService;
   final AppClock clock;
 
   @override
@@ -43,7 +47,16 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             timetableLoadService: widget.timetableLoadService,
             clock: widget.clock,
           ),
-          const _MealPlaceholder(),
+          if (widget.mealLoadService case final mealLoadService?)
+            MealScreen(
+              profile: widget.profile,
+              mealLoadService: mealLoadService,
+              timetableLoadService: widget.timetableLoadService,
+              clock: widget.clock,
+              isActive: _selectedIndex == 2,
+            )
+          else
+            const _MealPlaceholder(),
         ],
       ),
       bottomNavigationBar: AppBottomNavigation(
