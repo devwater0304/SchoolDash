@@ -10,6 +10,8 @@ void main() {
     region: '서울',
     grade: 1,
     classNumber: 3,
+    educationOfficeCode: 'B10',
+    standardSchoolCode: '7010569',
   );
 
   test('saves and restores the same school profile', () async {

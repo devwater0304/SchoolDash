@@ -13,6 +13,7 @@ void main() {
       MaterialApp(
         home: SchoolOnboardingScreen(
           profileRepository: _NoopProfileRepository(),
+          nearbySchoolRepository: const SampleSchoolSearchRepository(),
           schoolSearchRepository: const SampleSchoolSearchRepository(),
           onProfileSaved: () {},
         ),
@@ -23,6 +24,7 @@ void main() {
     await tester.tap(find.text('다른 학교 찾기'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '새롬');
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
     expect(find.text('새롬중학교'), findsOneWidget);

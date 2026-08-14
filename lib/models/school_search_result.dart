@@ -7,6 +7,8 @@ class SchoolSearchResult {
     required this.roadAddress,
     required this.region,
     required this.schoolType,
+    this.educationOfficeCode,
+    this.standardSchoolCode,
     this.distanceMeters,
   });
 
@@ -15,6 +17,8 @@ class SchoolSearchResult {
   final String roadAddress;
   final String region;
   final String schoolType;
+  final String? educationOfficeCode;
+  final String? standardSchoolCode;
   final int? distanceMeters;
 
   String? get distanceLabel {

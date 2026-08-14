@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import '../data/sample_school_search_repository.dart';
 import '../models/school_profile.dart';
+import '../models/school_search_failure.dart';
 import '../models/school_search_result.dart';
 import '../repositories/school_profile_repository.dart';
 import '../repositories/school_search_repository.dart';
@@ -17,11 +19,13 @@ class SchoolOnboardingScreen extends StatefulWidget {
   const SchoolOnboardingScreen({
     required this.profileRepository,
     required this.onProfileSaved,
-    this.schoolSearchRepository = const SampleSchoolSearchRepository(),
+    required this.nearbySchoolRepository,
+    required this.schoolSearchRepository,
     super.key,
   });
 
   final SchoolProfileRepository profileRepository;
+  final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
   final VoidCallback onProfileSaved;
 
@@ -31,6 +35,7 @@ class SchoolOnboardingScreen extends StatefulWidget {
 
 class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
   _OnboardingStep _step = _OnboardingStep.school;
   List<SchoolSearchResult> _schools = const [];
   SchoolSearchResult? _selectedSchool;
@@ -41,6 +46,8 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
   bool _isSaving = false;
   String? _schoolLoadError;
   String? _saveError;
+  String _searchQuery = '';
+  var _searchRequestId = 0;
 
   @override
   void initState() {
@@ -50,6 +57,7 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -60,7 +68,7 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
       _schoolLoadError = null;
     });
     try {
-      final schools = await widget.schoolSearchRepository.getNearbySchools();
+      final schools = await widget.nearbySchoolRepository.getNearbySchools();
       if (!mounted) return;
       setState(() => _schools = schools);
     } catch (_) {
@@ -72,19 +80,55 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
   }
 
   Future<void> _searchSchools(String query) async {
+    final requestId = ++_searchRequestId;
     setState(() {
       _isLoadingSchools = true;
       _schoolLoadError = null;
     });
     try {
       final schools = await widget.schoolSearchRepository.searchSchools(query);
-      if (!mounted) return;
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() => _schools = schools);
+    } on SchoolSearchFailure catch (failure) {
+      if (!mounted || requestId != _searchRequestId) return;
+      setState(() => _schoolLoadError = _messageForSearchFailure(failure));
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() => _schoolLoadError = '검색 결과를 불러오지 못했어요. 다시 시도해 주세요.');
     } finally {
-      if (mounted) setState(() => _isLoadingSchools = false);
+      if (mounted && requestId == _searchRequestId) {
+        setState(() => _isLoadingSchools = false);
+      }
+    }
+  }
+
+  void _queueSearch(String query) {
+    _searchDebounce?.cancel();
+    _searchQuery = query;
+    if (query.trim().isEmpty) {
+      setState(() {
+        _schools = const [];
+        _schoolLoadError = null;
+        _isLoadingSchools = false;
+      });
+      return;
+    }
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => _searchSchools(query),
+    );
+  }
+
+  String _messageForSearchFailure(SchoolSearchFailure failure) {
+    switch (failure.type) {
+      case SchoolSearchFailureType.notConfigured:
+        return '학교 검색을 사용하려면 NEIS API 키를 설정해 주세요.';
+      case SchoolSearchFailureType.network:
+        return '연결을 확인한 뒤 다시 검색해 주세요.';
+      case SchoolSearchFailureType.invalidResponse:
+        return '학교 정보를 읽지 못했어요. 다시 시도해 주세요.';
+      case SchoolSearchFailureType.api:
+        return '학교 검색을 잠시 사용할 수 없어요. 다시 시도해 주세요.';
     }
   }
 
@@ -114,6 +158,8 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
           region: school.region,
           grade: grade,
           classNumber: classNumber,
+          educationOfficeCode: school.educationOfficeCode,
+          standardSchoolCode: school.standardSchoolCode,
         ),
       );
       if (mounted) widget.onProfileSaved();
@@ -154,11 +200,20 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
           errorMessage: _schoolLoadError,
           searchController: _searchController,
           onSearchModeChanged: (isSearching) {
-            setState(() => _isSearching = isSearching);
+            _searchDebounce?.cancel();
+            setState(() {
+              _isSearching = isSearching;
+              _schools = const [];
+              _schoolLoadError = null;
+              _isLoadingSchools = false;
+              _searchQuery = '';
+            });
+            _searchController.clear();
             if (!isSearching) _loadNearbySchools();
           },
-          onQueryChanged: _searchSchools,
+          onQueryChanged: _queueSearch,
           onSchoolSelected: _selectSchool,
+          onRetry: () => _searchSchools(_searchQuery),
         ),
       ),
     );
@@ -175,6 +230,7 @@ class _SchoolStep extends StatelessWidget {
     required this.onSearchModeChanged,
     required this.onQueryChanged,
     required this.onSchoolSelected,
+    required this.onRetry,
   });
 
   final bool isSearching;
@@ -185,6 +241,7 @@ class _SchoolStep extends StatelessWidget {
   final ValueChanged<bool> onSearchModeChanged;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<SchoolSearchResult> onSchoolSelected;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +315,7 @@ class _SchoolStep extends StatelessWidget {
             child: Center(child: CircularProgressIndicator()),
           )
         else if (errorMessage != null)
-          _EmptySchoolState(message: errorMessage!)
+          _EmptySchoolState(message: errorMessage!, onRetry: onRetry)
         else if (schools.isEmpty)
           const _EmptySchoolState(message: '검색 결과가 없어요. 다른 이름으로 찾아보세요.')
         else
@@ -301,18 +358,25 @@ class _LocationHint extends StatelessWidget {
 }
 
 class _EmptySchoolState extends StatelessWidget {
-  const _EmptySchoolState({required this.message});
+  const _EmptySchoolState({required this.message, this.onRetry});
 
   final String message;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: AppTextStyles.caption,
+      child: Column(
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.caption,
+          ),
+          if (onRetry != null)
+            TextButton(onPressed: onRetry, child: const Text('다시 시도')),
+        ],
       ),
     );
   }
@@ -399,35 +463,55 @@ class _ClassInfoStep extends StatelessWidget {
           const SizedBox(height: AppSpacing.section),
           const Text('몇 학년인가요?', style: AppTextStyles.sectionTitle),
           const SizedBox(height: 12),
-          ...List.generate(3, (index) {
-            final grade = index + 1;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: ChoiceSelectionCard(
+          GridView.count(
+            crossAxisCount: 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.55,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: List.generate(3, (index) {
+              final grade = index + 1;
+              return ChoiceSelectionCard(
                 label: '$grade학년',
                 selected: selectedGrade == grade,
                 onTap: () => onGradeSelected(grade),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
           const SizedBox(height: AppSpacing.medium),
           const Text('몇 반인가요?', style: AppTextStyles.sectionTitle),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.25,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: List.generate(10, (index) {
-              final classNumber = index + 1;
-              return ChoiceSelectionCard(
-                label: '$classNumber반',
-                selected: selectedClassNumber == classNumber,
-                onTap: () => onClassSelected(classNumber),
-              );
-            }),
+          DropdownButtonFormField<int>(
+            initialValue: selectedClassNumber,
+            isExpanded: true,
+            hint: const Text('반을 선택하세요'),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.skySoft,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: AppColors.line),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: AppColors.line),
+              ),
+            ),
+            items: List.generate(
+              20,
+              (index) => DropdownMenuItem(
+                value: index + 1,
+                child: Text('${index + 1}반'),
+              ),
+            ),
+            onChanged: (classNumber) {
+              if (classNumber != null) onClassSelected(classNumber);
+            },
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: AppSpacing.medium),
