@@ -1,3 +1,5 @@
+import 'school_level.dart';
+
 /// A school that can be shown during the first-run school selection flow.
 /// The optional distance is supplied by the active search source, not by UI.
 class SchoolSearchResult {
@@ -20,6 +22,8 @@ class SchoolSearchResult {
   final String? educationOfficeCode;
   final String? standardSchoolCode;
   final int? distanceMeters;
+
+  SchoolLevel get schoolLevel => schoolLevelFromSchoolType(schoolType);
 
   String? get distanceLabel {
     final meters = distanceMeters;

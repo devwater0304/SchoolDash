@@ -12,6 +12,7 @@ void main() {
     classNumber: 3,
     educationOfficeCode: 'B10',
     standardSchoolCode: '7010569',
+    schoolType: '고등학교',
   );
 
   test('saves and restores the same school profile', () async {
@@ -34,6 +35,20 @@ void main() {
 
     expect(await repository.hasProfile(), isFalse);
     expect(await repository.loadProfile(), isNull);
+  });
+
+  test('restores profiles saved before school type was added', () async {
+    final storage = _MemoryKeyValueStore();
+    await storage.writeString(
+      'school_profile',
+      '{"schoolName":"샘플중학교","schoolId":"sample-middle","region":"서울","grade":2,"classNumber":4}',
+    );
+    final repository = LocalSchoolProfileRepository(storage);
+
+    final profile = await repository.loadProfile();
+
+    expect(profile?.schoolType, isNull);
+    expect(profile?.schoolLevel.name, 'middle');
   });
 }
 

@@ -123,6 +123,14 @@ class _StatusCardCopy {
           icon: Icons.celebration_outlined,
         );
       case SchoolStatusType.noClasses:
+        if (schoolDay?.hasClasses == true) {
+          return const _StatusCardCopy(
+            eyebrow: '시간표 없음',
+            title: '오늘 시간표가 없어요',
+            detail: '학교 일정은 별도로 확인해 주세요',
+            icon: Icons.event_note_outlined,
+          );
+        }
         final reason = schoolDay?.event?.name ?? _dayTypeLabel(schoolDay?.type);
         return _StatusCardCopy(
           eyebrow: '시간표 없음',

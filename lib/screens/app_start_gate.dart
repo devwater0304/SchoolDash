@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
+import '../repositories/school_repository.dart';
 import '../repositories/school_search_repository.dart';
 import 'home_screen.dart';
 import 'school_onboarding_screen.dart';
@@ -13,12 +14,16 @@ class AppStartGate extends StatefulWidget {
     required this.profileRepository,
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
+    required this.schoolRepository,
+    required this.fallbackSchoolRepository,
     super.key,
   });
 
   final SchoolProfileRepository profileRepository;
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
+  final SchoolRepository schoolRepository;
+  final SchoolRepository fallbackSchoolRepository;
 
   @override
   State<AppStartGate> createState() => _AppStartGateState();
@@ -58,6 +63,10 @@ class _AppStartGateState extends State<AppStartGate> {
         onProfileSaved: _reloadProfile,
       );
     }
-    return HomeScreen(profile: profile);
+    return HomeScreen(
+      profile: profile,
+      schoolRepository: widget.schoolRepository,
+      fallbackSchoolRepository: widget.fallbackSchoolRepository,
+    );
   }
 }

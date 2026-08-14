@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:school_dash/models/school_profile.dart';
 import 'package:school_dash/data/sample_school_search_repository.dart';
+import 'package:school_dash/data/sample_timetable.dart';
 import 'package:school_dash/repositories/school_profile_repository.dart';
 import 'package:school_dash/screens/app_start_gate.dart';
 
@@ -17,6 +18,8 @@ void main() {
           profileRepository: profileRepository,
           nearbySchoolRepository: const SampleSchoolSearchRepository(),
           schoolSearchRepository: const SampleSchoolSearchRepository(),
+          schoolRepository: SampleSchoolRepository(),
+          fallbackSchoolRepository: SampleSchoolRepository(),
         ),
       ),
     );
@@ -46,6 +49,7 @@ void main() {
         region: '세종특별자치시',
         grade: 2,
         classNumber: 3,
+        schoolType: '중학교',
       ),
     );
     expect(find.text('SchoolDash'), findsOneWidget);
@@ -56,6 +60,8 @@ void main() {
           profileRepository: profileRepository,
           nearbySchoolRepository: const SampleSchoolSearchRepository(),
           schoolSearchRepository: const SampleSchoolSearchRepository(),
+          schoolRepository: SampleSchoolRepository(),
+          fallbackSchoolRepository: SampleSchoolRepository(),
         ),
       ),
     );

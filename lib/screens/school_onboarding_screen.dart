@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
+import '../models/school_level.dart';
 import '../models/school_search_failure.dart';
 import '../models/school_search_result.dart';
 import '../repositories/school_profile_repository.dart';
@@ -172,6 +173,7 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
           classNumber: classNumber,
           educationOfficeCode: school.educationOfficeCode,
           standardSchoolCode: school.standardSchoolCode,
+          schoolType: school.schoolType,
         ),
       );
       if (mounted) widget.onProfileSaved();
@@ -484,7 +486,7 @@ class _ClassInfoStep extends StatelessWidget {
             childAspectRatio: 1.55,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            children: List.generate(3, (index) {
+            children: List.generate(school.schoolLevel.gradeCount, (index) {
               final grade = index + 1;
               return ChoiceSelectionCard(
                 label: '$grade학년',

@@ -1,3 +1,5 @@
+import 'school_level.dart';
+
 /// The school and class a SchoolDash installation is configured to show.
 ///
 /// [schoolId] is an app-level identifier. A future data source can translate
@@ -11,6 +13,7 @@ class SchoolProfile {
     required this.classNumber,
     this.educationOfficeCode,
     this.standardSchoolCode,
+    this.schoolType,
   });
 
   final String schoolName;
@@ -20,6 +23,12 @@ class SchoolProfile {
   final int classNumber;
   final String? educationOfficeCode;
   final String? standardSchoolCode;
+  final String? schoolType;
+
+  /// Supports profiles saved before [schoolType] was introduced by falling
+  /// back to the school name, which normally includes its school level.
+  SchoolLevel get schoolLevel =>
+      schoolLevelFromSchoolType(schoolType ?? schoolName);
 
   Map<String, Object?> toJson() => {
     'schoolName': schoolName,
@@ -29,6 +38,7 @@ class SchoolProfile {
     'classNumber': classNumber,
     if (educationOfficeCode != null) 'educationOfficeCode': educationOfficeCode,
     if (standardSchoolCode != null) 'standardSchoolCode': standardSchoolCode,
+    if (schoolType != null) 'schoolType': schoolType,
   };
 
   factory SchoolProfile.fromJson(Map<String, Object?> json) {
@@ -39,6 +49,7 @@ class SchoolProfile {
     final classNumber = json['classNumber'];
     final educationOfficeCode = json['educationOfficeCode'];
     final standardSchoolCode = json['standardSchoolCode'];
+    final schoolType = json['schoolType'];
 
     if (schoolName is! String ||
         schoolId is! String ||
@@ -46,7 +57,8 @@ class SchoolProfile {
         grade is! int ||
         classNumber is! int ||
         (educationOfficeCode != null && educationOfficeCode is! String) ||
-        (standardSchoolCode != null && standardSchoolCode is! String)) {
+        (standardSchoolCode != null && standardSchoolCode is! String) ||
+        (schoolType != null && schoolType is! String)) {
       throw const FormatException('Invalid school profile data.');
     }
 
@@ -58,6 +70,7 @@ class SchoolProfile {
       classNumber: classNumber,
       educationOfficeCode: educationOfficeCode as String?,
       standardSchoolCode: standardSchoolCode as String?,
+      schoolType: schoolType as String?,
     );
   }
 
@@ -70,7 +83,8 @@ class SchoolProfile {
         grade == other.grade &&
         classNumber == other.classNumber &&
         educationOfficeCode == other.educationOfficeCode &&
-        standardSchoolCode == other.standardSchoolCode;
+        standardSchoolCode == other.standardSchoolCode &&
+        schoolType == other.schoolType;
   }
 
   @override
@@ -82,5 +96,6 @@ class SchoolProfile {
     classNumber,
     educationOfficeCode,
     standardSchoolCode,
+    schoolType,
   );
 }

@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../data/sample_timetable.dart';
 import '../models/daily_timetable.dart';
 import '../models/school_day.dart';
 import '../models/school_profile.dart';
 import '../models/school_time_status.dart';
+import '../models/timetable_failure.dart';
 import '../repositories/school_repository.dart';
 import '../services/school_calendar_service.dart';
 import '../services/school_time_service.dart';
@@ -18,22 +18,29 @@ import '../widgets/current_status_card.dart';
 import '../widgets/timetable_tile.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({required this.profile, super.key});
+  const HomeScreen({
+    required this.profile,
+    required this.schoolRepository,
+    required this.fallbackSchoolRepository,
+    super.key,
+  });
 
   final SchoolProfile profile;
+  final SchoolRepository schoolRepository;
+  final SchoolRepository fallbackSchoolRepository;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final SchoolRepository _schoolRepository = SampleSchoolRepository();
   final _schoolCalendarService = const SchoolCalendarService();
   final _schoolTimeService = const SchoolTimeService();
   late DateTime _now;
   Timer? _clockTimer;
   SchoolDay? _schoolDay;
   DailyTimetable? _dailyTimetable;
+  String? _timetableMessage;
 
   @override
   void initState() {
@@ -60,19 +67,30 @@ class _HomeScreenState extends State<HomeScreen> {
     final schoolDay = await _schoolCalendarService.getSchoolDay(
       date: date,
       profile: widget.profile,
-      repository: _schoolRepository,
+      repository: widget.schoolRepository,
     );
-    final timetable = schoolDay.hasClasses
-        ? await _schoolRepository.getTimetable(
-            profile: widget.profile,
-            date: date,
-          )
-        : null;
+    DailyTimetable? timetable;
+    String? timetableMessage;
+    if (schoolDay.hasClasses) {
+      try {
+        timetable = await widget.schoolRepository.getTimetable(
+          profile: widget.profile,
+          date: date,
+        );
+      } on TimetableFailure {
+        timetable = await widget.fallbackSchoolRepository.getTimetable(
+          profile: widget.profile,
+          date: date,
+        );
+        timetableMessage = '최신 시간표를 불러오지 못해 임시 시간표를 보여드려요.';
+      }
+    }
 
     if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
     setState(() {
       _schoolDay = schoolDay;
       _dailyTimetable = timetable;
+      _timetableMessage = timetableMessage;
     });
   }
 
@@ -124,6 +142,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
+                  if (_timetableMessage != null) ...[
+                    Text(
+                      _timetableMessage!,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.skyDark,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   ...classes.map(
                     (schedule) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
