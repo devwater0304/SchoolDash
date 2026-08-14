@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/class_schedule.dart';
+import '../models/school_day.dart';
 import '../models/school_profile.dart';
 import '../models/school_time_status.dart';
 import '../models/timetable_load_result.dart';
@@ -61,15 +62,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadDayData(DateTime date) async {
     if (mounted) setState(() => _isLoading = true);
-    final result = await widget.timetableLoadService.loadDay(
+    final timetableFuture = widget.timetableLoadService.loadDayTimetable(
       profile: widget.profile,
       date: date,
     );
+    final schoolDayFuture = widget.timetableLoadService.loadSchoolDay(
+      profile: widget.profile,
+      date: date,
+    );
+    final result = await timetableFuture;
 
     if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
     setState(() {
       _timetableResult = result;
       _isLoading = false;
+    });
+
+    final schoolDay = await schoolDayFuture;
+    if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
+    setState(() {
+      _timetableResult = result.copyWith(
+        schoolDay: schoolDay,
+        status: schoolDay.hasClasses
+            ? result.status
+            : TimetableLoadStatus.nonSchoolDay,
+      );
     });
   }
 
@@ -133,12 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (classes.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30),
-                    child: Center(
-                      child: Text('오늘은 시간표가 없어요', style: AppTextStyles.caption),
-                    ),
-                  )
+                  _TimetableEmptyState(schoolDay: result?.schoolDay)
                 else
                   ...classes.map(
                     (schedule) => Padding(
@@ -158,6 +170,54 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+}
+
+class _TimetableEmptyState extends StatelessWidget {
+  const _TimetableEmptyState({this.schoolDay});
+
+  final SchoolDay? schoolDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDayOff = schoolDay?.hasClasses == false;
+    final detail = schoolDay?.event?.name ?? _dayTypeLabel(schoolDay?.type);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 30),
+      child: Center(
+        child: Column(
+          children: [
+            Text(
+              isDayOff ? '오늘은 쉬는 날!' : '오늘은 시간표가 없어요',
+              style: AppTextStyles.caption,
+            ),
+            if (isDayOff && detail != null) ...[
+              const SizedBox(height: 5),
+              Text(
+                detail,
+                style: AppTextStyles.caption.copyWith(color: AppColors.skyDark),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String? _dayTypeLabel(SchoolDayType? type) {
+    switch (type) {
+      case SchoolDayType.weekend:
+        return '주말이에요';
+      case SchoolDayType.publicHoliday:
+        return '공휴일이에요';
+      case SchoolDayType.vacation:
+        return '방학 기간이에요';
+      case SchoolDayType.schoolClosure:
+        return '휴업일이에요';
+      case SchoolDayType.schoolDay:
+      case null:
+        return null;
+    }
   }
 }
 

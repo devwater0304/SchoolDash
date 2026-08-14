@@ -7,6 +7,7 @@ import 'package:school_dash/config/neis_api_config.dart';
 import 'package:school_dash/data/neis_school_repository.dart';
 import 'package:school_dash/data/sample_timetable.dart';
 import 'package:school_dash/models/school_profile.dart';
+import 'package:school_dash/models/school_event.dart';
 import 'package:school_dash/models/timetable_failure.dart';
 
 void main() {
@@ -25,7 +26,6 @@ void main() {
       NeisSchoolRepository(
         config: const NeisApiConfig(apiKey: 'test-key'),
         localTimeTemplate: sampleClassSchedule,
-        calendarRepository: SampleSchoolRepository(),
         client: client,
       );
 
@@ -106,6 +106,76 @@ void main() {
     );
   });
 
+  test(
+    'maps NEIS SchoolSchedule rows into grade-aware school events',
+    () async {
+      final repository = repositoryFor(
+        MockClient((request) async {
+          expect(request.url.path, '/hub/SchoolSchedule');
+          expect(request.url.queryParameters['AA_FROM_YMD'], '20260814');
+          expect(request.url.queryParameters['AA_TO_YMD'], '20260814');
+          return _jsonResponse({
+            'SchoolSchedule': [
+              {
+                'head': [
+                  {
+                    'RESULT': {'CODE': 'INFO-000', 'MESSAGE': '정상'},
+                  },
+                ],
+              },
+              {
+                'row': [
+                  {
+                    'AA_YMD': '20260814',
+                    'EVENT_NM': '여름방학',
+                    'SBTR_DD_SC_NM': '휴업일',
+                    'ONE_GRADE_EVENT_YN': 'Y',
+                    'TW_GRADE_EVENT_YN': 'Y',
+                    'THREE_GRADE_EVENT_YN': 'Y',
+                  },
+                ],
+              },
+            ],
+          });
+        }),
+      );
+
+      final events = await repository.getSchoolEvents(
+        profile: profile,
+        from: DateTime(2026, 8, 14),
+        to: DateTime(2026, 8, 14),
+      );
+
+      expect(events, hasLength(1));
+      expect(events.single.name, '여름방학');
+      expect(events.single.type, SchoolEventType.vacation);
+      expect(events.single.appliesToGrade(2), isTrue);
+      expect(events.single.appliesToGrade(4), isFalse);
+    },
+  );
+
+  test(
+    'returns an empty calendar when NEIS reports no schedule data',
+    () async {
+      final repository = repositoryFor(
+        MockClient(
+          (_) async => _jsonResponse({
+            'RESULT': {'CODE': 'INFO-200', 'MESSAGE': '해당하는 데이터가 없습니다.'},
+          }),
+        ),
+      );
+
+      expect(
+        await repository.getSchoolEvents(
+          profile: profile,
+          from: DateTime(2026, 8, 14),
+          to: DateTime(2026, 8, 14),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
   test('reports malformed NEIS timetable data safely', () async {
     final repository = repositoryFor(
       MockClient(
@@ -130,6 +200,37 @@ void main() {
 
     await expectLater(
       repository.getTimetable(profile: profile, date: DateTime(2026, 8, 14)),
+      throwsA(
+        isA<TimetableFailure>().having(
+          (failure) => failure.type,
+          'type',
+          TimetableFailureType.invalidResponse,
+        ),
+      ),
+    );
+  });
+
+  test('reports malformed NEIS school schedule data safely', () async {
+    final repository = repositoryFor(
+      MockClient(
+        (_) async => _jsonResponse({
+          'SchoolSchedule': [
+            {
+              'row': [
+                {'AA_YMD': 'invalid', 'EVENT_NM': '여름방학'},
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+
+    await expectLater(
+      repository.getSchoolEvents(
+        profile: profile,
+        from: DateTime(2026, 8, 14),
+        to: DateTime(2026, 8, 14),
+      ),
       throwsA(
         isA<TimetableFailure>().having(
           (failure) => failure.type,

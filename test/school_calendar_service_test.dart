@@ -1,7 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:school_dash/data/sample_timetable.dart';
+import 'package:school_dash/models/daily_timetable.dart';
 import 'package:school_dash/models/school_day.dart';
+import 'package:school_dash/models/school_event.dart';
 import 'package:school_dash/models/school_profile.dart';
+import 'package:school_dash/models/timetable_failure.dart';
+import 'package:school_dash/repositories/school_repository.dart';
 import 'package:school_dash/services/school_calendar_service.dart';
 
 void main() {
@@ -68,4 +72,58 @@ void main() {
       isNull,
     );
   });
+
+  test('ignores a grade-specific closure for another grade', () async {
+    final gradeOneClosure = SchoolEvent(
+      startDate: DateTime(2026, 8, 14),
+      endDate: DateTime(2026, 8, 14),
+      name: '2학년 현장체험학습',
+      type: SchoolEventType.schoolClosure,
+      grades: const {2},
+    );
+    final repository = SampleSchoolRepository(events: [gradeOneClosure]);
+
+    final schoolDay = await calendarService.getSchoolDay(
+      date: DateTime(2026, 8, 14),
+      profile: profile,
+      repository: repository,
+    );
+
+    expect(schoolDay.type, SchoolDayType.schoolDay);
+  });
+
+  test(
+    'does not mistake a calendar API failure for a school holiday',
+    () async {
+      final schoolDay = await calendarService.getSchoolDay(
+        date: DateTime(2026, 8, 14),
+        profile: profile,
+        repository: _FailingCalendarRepository(),
+      );
+
+      expect(schoolDay.type, SchoolDayType.schoolDay);
+    },
+  );
+}
+
+class _FailingCalendarRepository implements SchoolRepository {
+  @override
+  Future<DailyTimetable?> getTimetable({
+    required SchoolProfile profile,
+    required DateTime date,
+  }) async => null;
+
+  @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => const [];
+
+  @override
+  Future<List<SchoolEvent>> getSchoolEvents({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => throw const TimetableFailure(TimetableFailureType.network);
 }

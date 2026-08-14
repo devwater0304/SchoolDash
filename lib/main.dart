@@ -20,7 +20,6 @@ void main() {
   final schoolRepository = NeisSchoolRepository(
     config: const NeisApiConfig.fromEnvironment(),
     localTimeTemplate: sampleClassSchedule,
-    calendarRepository: sampleSchoolRepository,
   );
   runApp(
     SchoolDashApp(

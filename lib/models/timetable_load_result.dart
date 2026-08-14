@@ -16,4 +16,13 @@ class TimetableLoadResult {
 
   bool get hasClasses => (timetable?.classes.isNotEmpty ?? false);
   bool get isFallback => status == TimetableLoadStatus.fallback;
+
+  TimetableLoadResult copyWith({
+    SchoolDay? schoolDay,
+    TimetableLoadStatus? status,
+  }) => TimetableLoadResult(
+    schoolDay: schoolDay ?? this.schoolDay,
+    status: status ?? this.status,
+    timetable: timetable,
+  );
 }

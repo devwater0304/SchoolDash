@@ -134,7 +134,7 @@ class _StatusCardCopy {
         final reason = schoolDay?.event?.name ?? _dayTypeLabel(schoolDay?.type);
         return _StatusCardCopy(
           eyebrow: '시간표 없음',
-          title: '오늘은 수업이 없습니다',
+          title: '오늘은 쉬는 날!',
           detail: reason ?? '편안한 하루 보내세요',
           icon: Icons.event_available_outlined,
         );

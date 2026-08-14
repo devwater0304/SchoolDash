@@ -30,6 +30,38 @@ void main() {
       expect(find.text('오늘은 시간표가 없어요'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'explains a verified school vacation instead of a generic empty state',
+    (tester) async {
+      final repository = _EmptyTimetableRepository(
+        events: [
+          SchoolEvent(
+            startDate: DateTime(2026, 6, 15),
+            endDate: DateTime(2026, 6, 15),
+            name: '여름방학',
+            type: SchoolEventType.vacation,
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(
+            profile: _profile,
+            timetableLoadService: TimetableLoadService(
+              primaryRepository: repository,
+              fallbackRepository: repository,
+            ),
+            clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('오늘은 쉬는 날!'), findsWidgets);
+      expect(find.text('여름방학'), findsWidgets);
+    },
+  );
 }
 
 const _profile = SchoolProfile(
@@ -41,12 +73,17 @@ const _profile = SchoolProfile(
 );
 
 class _EmptyTimetableRepository implements SchoolRepository {
+  _EmptyTimetableRepository({List<SchoolEvent>? events})
+    : _events = events ?? const [];
+
+  final List<SchoolEvent> _events;
+
   @override
   Future<List<SchoolEvent>> getSchoolEvents({
     required SchoolProfile profile,
     required DateTime from,
     required DateTime to,
-  }) async => const [];
+  }) async => _events;
 
   @override
   Future<DailyTimetable?> getTimetable({

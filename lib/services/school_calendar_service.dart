@@ -13,14 +13,28 @@ class SchoolCalendarService {
     required SchoolProfile profile,
     required SchoolRepository repository,
   }) async {
-    final events = await repository.getSchoolEvents(
-      profile: profile,
-      from: date,
-      to: date,
-    );
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    if (dateOnly.weekday == DateTime.saturday ||
+        dateOnly.weekday == DateTime.sunday) {
+      return const SchoolDay(type: SchoolDayType.weekend);
+    }
+
+    List<SchoolEvent> events;
+    try {
+      events = await repository.getSchoolEvents(
+        profile: profile,
+        from: dateOnly,
+        to: dateOnly,
+      );
+    } catch (_) {
+      // An unavailable calendar must never turn an ordinary day into a
+      // holiday. Timetable loading can continue independently.
+      return const SchoolDay(type: SchoolDayType.schoolDay);
+    }
     SchoolEvent? blockingEvent;
     for (final event in events) {
-      if (_isNonSchoolEvent(event.type)) {
+      if (_isNonSchoolEvent(event.type) &&
+          event.appliesToGrade(profile.grade)) {
         blockingEvent = event;
         break;
       }
@@ -31,10 +45,6 @@ class SchoolCalendarService {
         type: _schoolDayTypeFor(blockingEvent.type),
         event: blockingEvent,
       );
-    }
-
-    if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
-      return const SchoolDay(type: SchoolDayType.weekend);
     }
 
     return const SchoolDay(type: SchoolDayType.schoolDay);

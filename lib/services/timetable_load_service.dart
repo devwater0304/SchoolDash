@@ -23,17 +23,26 @@ class TimetableLoadService {
     required SchoolProfile profile,
     required DateTime date,
   }) async {
-    final schoolDay = await calendarService.getSchoolDay(
-      date: date,
-      profile: profile,
-      repository: primaryRepository,
-    );
+    final timetableFuture = loadDayTimetable(profile: profile, date: date);
+    final schoolDay = await loadSchoolDay(profile: profile, date: date);
+    final timetableResult = await timetableFuture;
     if (!schoolDay.hasClasses) {
       return TimetableLoadResult(
         schoolDay: schoolDay,
         status: TimetableLoadStatus.nonSchoolDay,
       );
     }
+
+    return timetableResult.copyWith(schoolDay: schoolDay);
+  }
+
+  /// Loads timetable data without waiting for school-calendar data. Home uses
+  /// this first so a slow calendar response cannot hold up today's classes.
+  Future<TimetableLoadResult> loadDayTimetable({
+    required SchoolProfile profile,
+    required DateTime date,
+  }) async {
+    const schoolDay = SchoolDay(type: SchoolDayType.schoolDay);
 
     try {
       final timetable = await primaryRepository.getTimetable(
@@ -60,6 +69,15 @@ class TimetableLoadService {
     }
   }
 
+  Future<SchoolDay> loadSchoolDay({
+    required SchoolProfile profile,
+    required DateTime date,
+  }) => calendarService.getSchoolDay(
+    date: date,
+    profile: profile,
+    repository: primaryRepository,
+  );
+
   Future<List<TimetableLoadResult>> loadWeek({
     required SchoolProfile profile,
     required List<DateTime> dates,
@@ -79,21 +97,17 @@ class TimetableLoadService {
     required _WeekCacheKey key,
   }) async {
     try {
-      final schoolDays = await Future.wait(
-        dates.map(
-          (date) => calendarService.getSchoolDay(
-            date: date,
-            profile: profile,
-            repository: primaryRepository,
-          ),
-        ),
+      final schoolDaysFuture = Future.wait(
+        dates.map((date) => loadSchoolDay(profile: profile, date: date)),
       );
       final range = _DateRange.fromDates(dates);
-      final loaded = await _loadRangeWithFallback(
+      final loadedFuture = _loadRangeWithFallback(
         profile: profile,
         from: range.from,
         to: range.to,
       );
+      final schoolDays = await schoolDaysFuture;
+      final loaded = await loadedFuture;
       final timetablesByDate = {
         for (final timetable in loaded.timetables)
           _dateOnly(timetable.date): timetable,
