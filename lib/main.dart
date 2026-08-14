@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'data/key_value_store.dart';
+import 'data/local_school_profile_repository.dart';
+import 'repositories/school_profile_repository.dart';
+import 'screens/app_start_gate.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(const SchoolDashApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    SchoolDashApp(
+      profileRepository: LocalSchoolProfileRepository(
+        SharedPreferencesKeyValueStore(),
+      ),
+    ),
+  );
 }
 
 class SchoolDashApp extends StatelessWidget {
-  const SchoolDashApp({super.key});
+  const SchoolDashApp({required this.profileRepository, super.key});
+
+  final SchoolProfileRepository profileRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +28,7 @@ class SchoolDashApp extends StatelessWidget {
       title: 'SchoolDash',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const HomeScreen(),
+      home: AppStartGate(profileRepository: profileRepository),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/sample_timetable.dart';
 import '../models/daily_timetable.dart';
 import '../models/school_day.dart';
+import '../models/school_profile.dart';
 import '../models/school_time_status.dart';
 import '../repositories/school_repository.dart';
 import '../services/school_calendar_service.dart';
@@ -17,7 +18,9 @@ import '../widgets/current_status_card.dart';
 import '../widgets/timetable_tile.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({required this.profile, super.key});
+
+  final SchoolProfile profile;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -56,10 +59,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadDayData(DateTime date) async {
     final schoolDay = await _schoolCalendarService.getSchoolDay(
       date: date,
+      profile: widget.profile,
       repository: _schoolRepository,
     );
     final timetable = schoolDay.hasClasses
-        ? await _schoolRepository.getTimetable(date)
+        ? await _schoolRepository.getTimetable(
+            profile: widget.profile,
+            date: date,
+          )
         : null;
 
     if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;

@@ -8,6 +8,7 @@
 - 하늘색 포인트의 홈 화면과 오늘의 시간표
 - 현재 시간에 따른 수업 전 / 수업 중 / 쉬는 시간 / 점심시간 / 수업 종료 상태 계산
 - 날짜별 시간표와 학교 일정에 따른 수업일 판단
+- 학교·학년·반 설정을 위한 로컬 SchoolProfile 저장 기반
 - 지난 교시·현재 교시·예정 교시의 시각적 구분
 - 매분 현재 상태와 시간표 표시 자동 갱신
 - 샘플 시간표 데이터로 동작하는 초기 프로토타입
@@ -17,8 +18,8 @@
 ```text
 lib/
   data/           샘플 시간표와 일정 데이터
-  models/         날짜별 시간표, 학교 일정, 학교 상태 모델
-  repositories/   데이터 소스 공통 인터페이스
+  models/         날짜별 시간표, 학교 일정, 사용자 학교 설정 모델
+  repositories/   학교 데이터와 사용자 설정 공통 인터페이스
   services/       학교일 판단과 현재 시간 기반 상태 계산
   screens/    화면 조립
   widgets/    재사용 UI 컴포넌트
@@ -28,6 +29,8 @@ lib/
 데이터는 `SchoolRepository`를 통해 요청합니다. 현재는 `SampleSchoolRepository`가 샘플 데이터를 제공하고, 실제 NEIS 연동 시에는 `NeisSchoolRepository`처럼 같은 인터페이스를 구현한 데이터 소스로 교체할 수 있습니다.
 
 수업 여부는 `SchoolCalendarService`가 주말과 학교 일정을 기준으로 판단합니다. 수업일인 경우에만 날짜별 `DailyTimetable`을 가져와 `SchoolTimeService`로 전달하므로, 시간 계산 로직은 교시 시간 계산만 담당합니다. 이 흐름은 홈 위젯이나 Apple Watch에서도 그대로 재사용할 수 있습니다.
+
+학교 이름·지역·학년·반은 `SchoolProfile`로 표현하며, 앱 설정에 적합한 `shared_preferences`에 JSON으로 저장합니다. 앱 시작 시 `SchoolProfileRepository`가 저장된 설정을 먼저 확인하고, 있으면 Home으로 진입합니다. 설정 화면은 아직 임시 안내 화면이며, 실제 학교 검색을 추가할 때 이 화면과 데이터 소스 구현체만 확장하면 됩니다.
 
 ## 실행
 

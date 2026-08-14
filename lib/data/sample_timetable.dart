@@ -1,6 +1,7 @@
 import '../models/class_schedule.dart';
 import '../models/daily_timetable.dart';
 import '../models/school_event.dart';
+import '../models/school_profile.dart';
 import '../repositories/school_repository.dart';
 
 const sampleClassSchedule = <ClassSchedule>[
@@ -57,7 +58,10 @@ class SampleSchoolRepository implements SchoolRepository {
   final List<SchoolEvent> _events;
 
   @override
-  Future<DailyTimetable?> getTimetable(DateTime date) async {
+  Future<DailyTimetable?> getTimetable({
+    required SchoolProfile profile,
+    required DateTime date,
+  }) async {
     final dateOnly = _dateOnly(date);
     final hasNonSchoolEvent = _events.any(
       (event) =>
@@ -72,6 +76,7 @@ class SampleSchoolRepository implements SchoolRepository {
 
   @override
   Future<List<SchoolEvent>> getSchoolEvents({
+    required SchoolProfile profile,
     required DateTime from,
     required DateTime to,
   }) async {

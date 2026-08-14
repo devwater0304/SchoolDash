@@ -1,5 +1,6 @@
 import '../models/school_day.dart';
 import '../models/school_event.dart';
+import '../models/school_profile.dart';
 import '../repositories/school_repository.dart';
 
 /// Decides whether a date is a school day. It intentionally does not calculate
@@ -9,9 +10,14 @@ class SchoolCalendarService {
 
   Future<SchoolDay> getSchoolDay({
     required DateTime date,
+    required SchoolProfile profile,
     required SchoolRepository repository,
   }) async {
-    final events = await repository.getSchoolEvents(from: date, to: date);
+    final events = await repository.getSchoolEvents(
+      profile: profile,
+      from: date,
+      to: date,
+    );
     SchoolEvent? blockingEvent;
     for (final event in events) {
       if (_isNonSchoolEvent(event.type)) {
