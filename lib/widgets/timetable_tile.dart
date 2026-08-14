@@ -21,7 +21,9 @@ class TimetableTile extends StatelessWidget {
     final foreground = isCompleted ? AppColors.completed : AppColors.ink;
     final subtitle = isCompleted ? AppColors.completed : AppColors.muted;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       decoration: BoxDecoration(
         color: isCurrent ? AppColors.skySoft : AppColors.surface,

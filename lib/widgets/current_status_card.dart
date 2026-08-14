@@ -119,7 +119,7 @@ class _StatusCardCopy {
         return const _StatusCardCopy(
           eyebrow: '수업 종료',
           title: '오늘 수업 끝!',
-          detail: '오늘도 수고했어요',
+          detail: '내일 급식을 확인하세요',
           icon: Icons.celebration_outlined,
         );
       case SchoolStatusType.noClasses:

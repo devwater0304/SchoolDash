@@ -50,6 +50,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             timetableLoadService: widget.timetableLoadService,
             clock: widget.clock,
             dateController: widget.dateController,
+            mealLoadService: widget.mealLoadService,
           ),
           if (widget.mealLoadService case final mealLoadService?)
             MealScreen(

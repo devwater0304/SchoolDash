@@ -3,17 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/class_schedule.dart';
+import '../models/meal.dart';
+import '../models/meal_load_result.dart';
 import '../models/school_day.dart';
 import '../models/school_profile.dart';
 import '../models/school_time_status.dart';
 import '../models/timetable_load_result.dart';
 import '../services/app_clock.dart';
+import '../services/meal_load_service.dart';
 import '../services/school_time_service.dart';
 import '../services/timetable_load_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/current_status_card.dart';
+import '../widgets/home_meal_card.dart';
 import '../widgets/timetable_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,6 +26,7 @@ class HomeScreen extends StatefulWidget {
     required this.timetableLoadService,
     required this.clock,
     this.dateController,
+    this.mealLoadService,
     super.key,
   });
 
@@ -29,6 +34,7 @@ class HomeScreen extends StatefulWidget {
   final TimetableLoadService timetableLoadService;
   final AppClock clock;
   final AppDateController? dateController;
+  final MealLoadService? mealLoadService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -40,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _clockTimer;
   TimetableLoadResult? _timetableResult;
   var _isLoading = true;
+  MealLoadResult? _mealResult;
+  final _timetableScrollController = ScrollController();
+  int? _focusedPeriod;
 
   @override
   void initState() {
@@ -67,6 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _now = now;
       _timetableResult = null;
+      _mealResult = null;
+      _focusedPeriod = null;
     });
     _loadDayData(now);
   }
@@ -78,7 +89,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => _now = now);
     if (_dateOnly(now) != previousDate) {
+      _focusedPeriod = null;
       _loadDayData(now);
+    } else {
+      _focusCurrentClass();
     }
   }
 
@@ -92,6 +106,10 @@ class _HomeScreenState extends State<HomeScreen> {
       profile: widget.profile,
       date: date,
     );
+    final mealFuture = widget.mealLoadService?.loadNearbyMeals(
+      profile: widget.profile,
+      date: date,
+    );
     final result = await timetableFuture;
 
     if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
@@ -99,6 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _timetableResult = result;
       _isLoading = false;
     });
+    _focusCurrentClass();
+
+    if (mealFuture != null) {
+      unawaited(_applyMealResult(mealFuture, date));
+    }
 
     final schoolDay = await schoolDayFuture;
     if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
@@ -112,10 +135,21 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _applyMealResult(
+    Future<MealLoadResult> mealFuture,
+    DateTime date,
+  ) async {
+    final mealResult = await mealFuture;
+    if (mounted && _dateOnly(_now) == _dateOnly(date)) {
+      setState(() => _mealResult = mealResult);
+    }
+  }
+
   @override
   void dispose() {
     _clockTimer?.cancel();
     widget.dateController?.removeListener(_onAppDateChanged);
+    _timetableScrollController.dispose();
     super.dispose();
   }
 
@@ -131,6 +165,11 @@ class _HomeScreenState extends State<HomeScreen> {
             type: SchoolStatusType.noClasses,
             remaining: Duration.zero,
           );
+    final mealFirst = _selectedMeal(schoolStatus);
+    final mealTitle = _mealTitle(schoolStatus, mealFirst);
+    final showMealFirst =
+        schoolStatus.type == SchoolStatusType.lunchTime ||
+        schoolStatus.type == SchoolStatusType.afterClasses;
 
     return SafeArea(
       child: Column(
@@ -158,6 +197,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   schoolDay: result?.schoolDay,
                 ),
                 const SizedBox(height: AppSpacing.section),
+                if (showMealFirst) ...[
+                  HomeMealCard(
+                    title: mealTitle,
+                    meal: mealFirst,
+                    hasError: _mealResult?.hasError ?? false,
+                  ),
+                  const SizedBox(height: AppSpacing.section),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -190,24 +237,99 @@ class _HomeScreenState extends State<HomeScreen> {
                   else
                     _TimetableEmptyState(schoolDay: result?.schoolDay)
                 else
-                  ...classes.map(
-                    (schedule) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: TimetableTile(
-                        schedule: schedule,
-                        status: _schoolTimeService.classStatusFor(
+                  SizedBox(
+                    height: 300,
+                    child: ListView.separated(
+                      controller: _timetableScrollController,
+                      padding: EdgeInsets.zero,
+                      itemCount: classes.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final schedule = classes[index];
+                        return TimetableTile(
                           schedule: schedule,
-                          now: _now,
-                        ),
-                      ),
+                          status: _schoolTimeService.classStatusFor(
+                            schedule: schedule,
+                            now: _now,
+                          ),
+                        );
+                      },
                     ),
                   ),
+                if (!showMealFirst && widget.mealLoadService != null) ...[
+                  const SizedBox(height: AppSpacing.section),
+                  HomeMealCard(
+                    title: mealTitle,
+                    meal: mealFirst,
+                    hasError: _mealResult?.hasError ?? false,
+                  ),
+                ],
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Meal? _selectedMeal(SchoolTimeStatus status) {
+    final meals = _mealResult?.meals ?? const <Meal>[];
+    if (status.type != SchoolStatusType.afterClasses) {
+      return _mealOn(_now, meals);
+    }
+    final tomorrow = _dateOnly(_now).add(const Duration(days: 1));
+    for (final meal in meals) {
+      if (!meal.date.isBefore(tomorrow)) return meal;
+    }
+    return null;
+  }
+
+  String _mealTitle(SchoolTimeStatus status, Meal? meal) {
+    if (status.type != SchoolStatusType.afterClasses) return '오늘의 급식';
+    final tomorrow = _dateOnly(_now).add(const Duration(days: 1));
+    if (meal != null && _dateOnly(meal.date) == tomorrow) return '내일의 급식';
+    return meal == null
+        ? '다음 급식'
+        : '다음 급식 · ${meal.date.month}/${meal.date.day}';
+  }
+
+  Meal? _mealOn(DateTime date, List<Meal> meals) {
+    for (final meal in meals) {
+      if (_dateOnly(meal.date) == _dateOnly(date)) return meal;
+    }
+    return null;
+  }
+
+  void _focusCurrentClass() {
+    final classes =
+        _timetableResult?.timetable?.classes ?? const <ClassSchedule>[];
+    ClassSchedule? current;
+    for (final schedule in classes) {
+      if (_schoolTimeService.classStatusFor(schedule: schedule, now: _now) ==
+          ClassStatus.current) {
+        current = schedule;
+        break;
+      }
+    }
+    if (current == null || _focusedPeriod == current.period) return;
+    _focusedPeriod = current.period;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_timetableScrollController.hasClients && mounted) {
+        final index = classes.indexWhere(
+          (schedule) => schedule.period == current!.period,
+        );
+        if (index < 0) return;
+        const tileExtent = 82.0;
+        final target = (index * tileExtent - 105)
+            .clamp(0.0, _timetableScrollController.position.maxScrollExtent)
+            .toDouble();
+        _timetableScrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
   }
 
   Future<void> _showDatePicker() async {
