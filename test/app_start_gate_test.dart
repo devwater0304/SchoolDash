@@ -5,12 +5,19 @@ import 'package:school_dash/data/sample_school_search_repository.dart';
 import 'package:school_dash/data/sample_timetable.dart';
 import 'package:school_dash/repositories/school_profile_repository.dart';
 import 'package:school_dash/screens/app_start_gate.dart';
+import 'package:school_dash/services/app_clock.dart';
+import 'package:school_dash/services/timetable_load_service.dart';
 
 void main() {
   testWidgets('completes onboarding and skips it after app restart', (
     tester,
   ) async {
     final profileRepository = _ProfileMemory();
+    final timetableLoadService = TimetableLoadService(
+      primaryRepository: SampleSchoolRepository(),
+      fallbackRepository: SampleSchoolRepository(),
+    );
+    final clock = _FixedClock(DateTime(2026, 6, 15, 9));
 
     await tester.pumpWidget(
       MaterialApp(
@@ -18,8 +25,8 @@ void main() {
           profileRepository: profileRepository,
           nearbySchoolRepository: const SampleSchoolSearchRepository(),
           schoolSearchRepository: const SampleSchoolSearchRepository(),
-          schoolRepository: SampleSchoolRepository(),
-          fallbackSchoolRepository: SampleSchoolRepository(),
+          timetableLoadService: timetableLoadService,
+          clock: clock,
         ),
       ),
     );
@@ -60,8 +67,8 @@ void main() {
           profileRepository: profileRepository,
           nearbySchoolRepository: const SampleSchoolSearchRepository(),
           schoolSearchRepository: const SampleSchoolSearchRepository(),
-          schoolRepository: SampleSchoolRepository(),
-          fallbackSchoolRepository: SampleSchoolRepository(),
+          timetableLoadService: timetableLoadService,
+          clock: clock,
         ),
       ),
     );
@@ -90,4 +97,13 @@ class _ProfileMemory implements SchoolProfileRepository {
   Future<void> saveProfile(SchoolProfile profile) async {
     _profile = profile;
   }
+}
+
+class _FixedClock implements AppClock {
+  const _FixedClock(this.value);
+
+  final DateTime value;
+
+  @override
+  DateTime now() => value;
 }

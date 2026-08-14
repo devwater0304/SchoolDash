@@ -7,6 +7,8 @@ import 'package:school_dash/models/school_profile.dart';
 import 'package:school_dash/models/timetable_failure.dart';
 import 'package:school_dash/repositories/school_repository.dart';
 import 'package:school_dash/screens/home_screen.dart';
+import 'package:school_dash/services/app_clock.dart';
+import 'package:school_dash/services/timetable_load_service.dart';
 
 void main() {
   testWidgets('keeps Home usable with the sample timetable after API failure', (
@@ -22,8 +24,11 @@ void main() {
             grade: 2,
             classNumber: 3,
           ),
-          schoolRepository: _FailingTimetableRepository(),
-          fallbackSchoolRepository: _SampleTimetableRepository(),
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: _FailingTimetableRepository(),
+            fallbackRepository: _SampleTimetableRepository(),
+          ),
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
         ),
       ),
     );
@@ -63,4 +68,13 @@ class _SampleTimetableRepository implements SchoolRepository {
     required SchoolProfile profile,
     required DateTime date,
   }) async => DailyTimetable(date: date, classes: sampleClassSchedule);
+}
+
+class _FixedClock implements AppClock {
+  const _FixedClock(this.value);
+
+  final DateTime value;
+
+  @override
+  DateTime now() => value;
 }

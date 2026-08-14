@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
-import '../repositories/school_repository.dart';
 import '../repositories/school_search_repository.dart';
-import 'home_screen.dart';
+import '../services/app_clock.dart';
+import '../services/timetable_load_service.dart';
+import 'school_dash_shell.dart';
 import 'school_onboarding_screen.dart';
 
 /// Checks for a saved profile before choosing the app's first screen.
@@ -14,16 +15,16 @@ class AppStartGate extends StatefulWidget {
     required this.profileRepository,
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
-    required this.schoolRepository,
-    required this.fallbackSchoolRepository,
+    required this.timetableLoadService,
+    required this.clock,
     super.key,
   });
 
   final SchoolProfileRepository profileRepository;
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
-  final SchoolRepository schoolRepository;
-  final SchoolRepository fallbackSchoolRepository;
+  final TimetableLoadService timetableLoadService;
+  final AppClock clock;
 
   @override
   State<AppStartGate> createState() => _AppStartGateState();
@@ -63,10 +64,10 @@ class _AppStartGateState extends State<AppStartGate> {
         onProfileSaved: _reloadProfile,
       );
     }
-    return HomeScreen(
+    return SchoolDashShell(
       profile: profile,
-      schoolRepository: widget.schoolRepository,
-      fallbackSchoolRepository: widget.fallbackSchoolRepository,
+      timetableLoadService: widget.timetableLoadService,
+      clock: widget.clock,
     );
   }
 }

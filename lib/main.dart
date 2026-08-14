@@ -8,14 +8,20 @@ import 'data/neis_school_search_repository.dart';
 import 'data/sample_school_search_repository.dart';
 import 'data/sample_timetable.dart';
 import 'repositories/school_profile_repository.dart';
-import 'repositories/school_repository.dart';
 import 'repositories/school_search_repository.dart';
 import 'screens/app_start_gate.dart';
+import 'services/app_clock.dart';
+import 'services/timetable_load_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final sampleSchoolRepository = SampleSchoolRepository();
+  final schoolRepository = NeisSchoolRepository(
+    config: const NeisApiConfig.fromEnvironment(),
+    localTimeTemplate: sampleClassSchedule,
+    calendarRepository: sampleSchoolRepository,
+  );
   runApp(
     SchoolDashApp(
       profileRepository: LocalSchoolProfileRepository(
@@ -25,12 +31,11 @@ void main() {
       schoolSearchRepository: NeisSchoolSearchRepository(
         config: const NeisApiConfig.fromEnvironment(),
       ),
-      schoolRepository: NeisSchoolRepository(
-        config: const NeisApiConfig.fromEnvironment(),
-        localTimeTemplate: sampleClassSchedule,
-        calendarRepository: sampleSchoolRepository,
+      timetableLoadService: TimetableLoadService(
+        primaryRepository: schoolRepository,
+        fallbackRepository: sampleSchoolRepository,
       ),
-      fallbackSchoolRepository: sampleSchoolRepository,
+      clock: SystemAppClock.fromEnvironment(),
     ),
   );
 }
@@ -40,16 +45,16 @@ class SchoolDashApp extends StatelessWidget {
     required this.profileRepository,
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
-    required this.schoolRepository,
-    required this.fallbackSchoolRepository,
+    required this.timetableLoadService,
+    required this.clock,
     super.key,
   });
 
   final SchoolProfileRepository profileRepository;
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
-  final SchoolRepository schoolRepository;
-  final SchoolRepository fallbackSchoolRepository;
+  final TimetableLoadService timetableLoadService;
+  final AppClock clock;
 
   @override
   Widget build(BuildContext context) {
@@ -61,8 +66,8 @@ class SchoolDashApp extends StatelessWidget {
         profileRepository: profileRepository,
         nearbySchoolRepository: nearbySchoolRepository,
         schoolSearchRepository: schoolSearchRepository,
-        schoolRepository: schoolRepository,
-        fallbackSchoolRepository: fallbackSchoolRepository,
+        timetableLoadService: timetableLoadService,
+        clock: clock,
       ),
     );
   }

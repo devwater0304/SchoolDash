@@ -2,50 +2,46 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../models/daily_timetable.dart';
-import '../models/school_day.dart';
+import '../models/class_schedule.dart';
 import '../models/school_profile.dart';
 import '../models/school_time_status.dart';
-import '../models/timetable_failure.dart';
-import '../repositories/school_repository.dart';
-import '../services/school_calendar_service.dart';
+import '../models/timetable_load_result.dart';
+import '../services/app_clock.dart';
 import '../services/school_time_service.dart';
+import '../services/timetable_load_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
-import '../widgets/app_bottom_navigation.dart';
 import '../widgets/current_status_card.dart';
 import '../widgets/timetable_tile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     required this.profile,
-    required this.schoolRepository,
-    required this.fallbackSchoolRepository,
+    required this.timetableLoadService,
+    required this.clock,
     super.key,
   });
 
   final SchoolProfile profile;
-  final SchoolRepository schoolRepository;
-  final SchoolRepository fallbackSchoolRepository;
+  final TimetableLoadService timetableLoadService;
+  final AppClock clock;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _schoolCalendarService = const SchoolCalendarService();
   final _schoolTimeService = const SchoolTimeService();
   late DateTime _now;
   Timer? _clockTimer;
-  SchoolDay? _schoolDay;
-  DailyTimetable? _dailyTimetable;
-  String? _timetableMessage;
+  TimetableLoadResult? _timetableResult;
+  var _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _now = DateTime.now();
+    _now = widget.clock.now();
     _loadDayData(_now);
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       _refreshNow();
@@ -54,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _refreshNow() {
     final previousDate = _dateOnly(_now);
-    final now = DateTime.now();
+    final now = widget.clock.now();
     if (!mounted) return;
 
     setState(() => _now = now);
@@ -64,33 +60,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadDayData(DateTime date) async {
-    final schoolDay = await _schoolCalendarService.getSchoolDay(
-      date: date,
+    if (mounted) setState(() => _isLoading = true);
+    final result = await widget.timetableLoadService.loadDay(
       profile: widget.profile,
-      repository: widget.schoolRepository,
+      date: date,
     );
-    DailyTimetable? timetable;
-    String? timetableMessage;
-    if (schoolDay.hasClasses) {
-      try {
-        timetable = await widget.schoolRepository.getTimetable(
-          profile: widget.profile,
-          date: date,
-        );
-      } on TimetableFailure {
-        timetable = await widget.fallbackSchoolRepository.getTimetable(
-          profile: widget.profile,
-          date: date,
-        );
-        timetableMessage = '최신 시간표를 불러오지 못해 임시 시간표를 보여드려요.';
-      }
-    }
 
     if (!mounted || _dateOnly(_now) != _dateOnly(date)) return;
     setState(() {
-      _schoolDay = schoolDay;
-      _dailyTimetable = timetable;
-      _timetableMessage = timetableMessage;
+      _timetableResult = result;
+      _isLoading = false;
     });
   }
 
@@ -103,54 +82,64 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final dateLabel = _formatToday(_now);
-    final classes = _dailyTimetable?.classes ?? const [];
-    final schoolStatus = _schoolDay?.hasClasses == true
+    final result = _timetableResult;
+    final classes = result?.timetable?.classes ?? const <ClassSchedule>[];
+    final schoolStatus = result?.schoolDay.hasClasses == true
         ? _schoolTimeService.calculateStatus(now: _now, schedule: classes)
         : const SchoolTimeStatus(
             type: SchoolStatusType.noClasses,
             remaining: Duration.zero,
           );
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.page,
-                  20,
-                  AppSpacing.page,
-                  AppSpacing.large,
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                20,
+                AppSpacing.page,
+                AppSpacing.large,
+              ),
+              children: [
+                _Header(dateLabel: dateLabel),
+                const SizedBox(height: AppSpacing.large),
+                CurrentStatusCard(
+                  status: schoolStatus,
+                  schoolDay: result?.schoolDay,
                 ),
-                children: [
-                  _Header(dateLabel: dateLabel),
-                  const SizedBox(height: AppSpacing.large),
-                  CurrentStatusCard(
-                    status: schoolStatus,
-                    schoolDay: _schoolDay,
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
-                      Text(
-                        '총 ${classes.length}교시',
-                        style: AppTextStyles.caption,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  if (_timetableMessage != null) ...[
-                    Text(
-                      _timetableMessage!,
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.skyDark,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.section),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
+                    Text('총 ${classes.length}교시', style: AppTextStyles.caption),
                   ],
+                ),
+                const SizedBox(height: 14),
+                if (result?.isFallback == true) ...[
+                  Text(
+                    '최신 시간표를 불러오지 못해 임시 시간표를 보여드려요.',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.skyDark,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (classes.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Center(
+                      child: Text('오늘은 시간표가 없어요', style: AppTextStyles.caption),
+                    ),
+                  )
+                else
                   ...classes.map(
                     (schedule) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -163,12 +152,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
-            const AppBottomNavigation(),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
