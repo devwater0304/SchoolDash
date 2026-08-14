@@ -101,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final dateLabel = _formatToday(_now);
     final result = _timetableResult;
     final classes = result?.timetable?.classes ?? const <ClassSchedule>[];
+    final isVerifiedDayOff = result?.schoolDay.hasClasses == false;
     final schoolStatus = result?.schoolDay.hasClasses == true
         ? _schoolTimeService.calculateStatus(now: _now, schedule: classes)
         : const SchoolTimeStatus(
@@ -131,7 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
-                    Text('총 ${classes.length}교시', style: AppTextStyles.caption),
+                    if (!isVerifiedDayOff)
+                      Text(
+                        '총 ${classes.length}교시',
+                        style: AppTextStyles.caption,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -150,7 +155,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (classes.isEmpty)
-                  _TimetableEmptyState(schoolDay: result?.schoolDay)
+                  if (isVerifiedDayOff)
+                    _SchoolBreakTimetableState(schoolDay: result!.schoolDay)
+                  else
+                    _TimetableEmptyState(schoolDay: result?.schoolDay)
                 else
                   ...classes.map(
                     (schedule) => Padding(
@@ -168,6 +176,58 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SchoolBreakTimetableState extends StatelessWidget {
+  const _SchoolBreakTimetableState({required this.schoolDay});
+
+  final SchoolDay schoolDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final eventName = schoolDay.event?.name;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 210),
+      padding: const EdgeInsets.all(AppSpacing.section),
+      decoration: BoxDecoration(
+        color: AppColors.skySoft,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.skyPale),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.wb_sunny_outlined,
+                color: AppColors.skyDark,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              eventName ?? '오늘은 쉬는 날!',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.appTitle,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              eventName == null ? '오늘은 수업이 없어요' : '오늘은 쉬는 날!',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(color: AppColors.skyDark),
+            ),
+          ],
+        ),
       ),
     );
   }
