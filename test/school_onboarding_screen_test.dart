@@ -6,7 +6,7 @@ import 'package:school_dash/repositories/school_profile_repository.dart';
 import 'package:school_dash/screens/school_onboarding_screen.dart';
 
 void main() {
-  testWidgets('switches to name search and filters fake schools', (
+  testWidgets('waits for Korean composition before searching fake schools', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -23,7 +23,24 @@ void main() {
 
     await tester.tap(find.text('다른 학교 찾기'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '새롬');
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '새',
+        selection: TextSelection.collapsed(offset: 1),
+        composing: TextRange(start: 0, end: 1),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('새롬중학교'), findsNothing);
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '새롬',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 

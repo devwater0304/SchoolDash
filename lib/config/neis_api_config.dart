@@ -11,5 +11,5 @@ class NeisApiConfig {
   final String apiKey;
   final String baseUri;
 
-  bool get isConfigured => apiKey.isNotEmpty;
+  bool get isConfigured => apiKey.trim().isNotEmpty;
 }

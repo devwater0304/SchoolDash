@@ -36,13 +36,25 @@ lib/
 
 첫 실행에는 `SchoolOnboardingScreen`에서 가까운 학교 목록을 먼저 보여주고, 이름 검색으로 다른 학교를 찾을 수 있습니다. 현재 `SampleSchoolSearchRepository`가 개발용 목록을 제공하며, GPS는 사용하지 않습니다. 위치 기능을 붙일 때는 가까운 목록을 제공하는 구현체를, NEIS 학교 검색을 붙일 때는 `SchoolSearchRepository` 구현체를 각각 교체하면 됩니다.
 
-`다른 학교 찾기`는 `NeisSchoolSearchRepository`를 통해 NEIS `schoolInfo` API를 호출합니다. API 키는 소스나 Git에 저장하지 않고 실행 시에만 전달합니다.
+`다른 학교 찾기`는 `NeisSchoolSearchRepository`를 통해 NEIS `schoolInfo` API를 호출합니다. API 키는 소스나 Git에 저장하지 않고 실행 시에만 전달합니다. 처음 한 번만 아래처럼 개인 설정 파일을 만들고 키를 넣으면 됩니다.
 
 ```bash
-flutter run --dart-define=NEIS_API_KEY=발급받은_키
+cp .env.example .env
+# .env 파일의 NEIS_API_KEY 값을 발급받은 키로 바꾼 뒤 실행
+flutter run --dart-define-from-file=.env
 ```
 
-키가 없을 때는 앱이 멈추지 않고 검색 화면에서 설정 안내와 재시도 경로를 보여줍니다. NEIS 응답은 DTO와 mapper를 거쳐 SchoolDash의 `SchoolSearchResult`로 변환되며, 선택한 학교의 교육청 코드와 행정표준 학교코드는 기존 `SchoolProfile`에 함께 저장됩니다.
+`.env`는 Git에서 제외됩니다. CI나 배포 빌드에서는 같은 키를 안전한 비밀 변수로 주입하거나, 아래처럼 직접 전달하면 됩니다.
+
+```bash
+flutter build web --dart-define=NEIS_API_KEY=발급받은_키
+```
+
+키가 없을 때는 앱이 멈추지 않고 검색 화면에서 간단한 설정 안내와 재시도 경로를 보여줍니다. NEIS 응답은 DTO와 mapper를 거쳐 SchoolDash의 `SchoolSearchResult`로 변환되며, 선택한 학교의 교육청 코드와 행정표준 학교코드는 기존 `SchoolProfile`에 함께 저장됩니다.
+
+## 글꼴
+
+앱 전체 기본 글꼴은 SUIT입니다. Thin부터 Heavy까지 제공된 9개 굵기를 모두 등록했으므로 제목과 강조 텍스트는 실제 굵기 파일을 사용합니다. 학교 검색 입력창에는 운영체제의 한국어 글꼴 fallback도 지정해 한글 조합 입력을 안정적으로 처리합니다.
 
 ## 실행
 

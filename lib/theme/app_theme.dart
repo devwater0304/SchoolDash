@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_text_styles.dart';
 
 abstract final class AppTheme {
   static ThemeData get light => ThemeData(
@@ -11,6 +12,10 @@ abstract final class AppTheme {
       brightness: Brightness.light,
       surface: AppColors.surface,
     ),
-    fontFamily: 'Arial',
+    fontFamily: AppTextStyles.fontFamily,
+    textTheme: ThemeData.light().textTheme.apply(
+      fontFamily: AppTextStyles.fontFamily,
+      fontFamilyFallback: AppTextStyles.koreanFallback,
+    ),
   );
 }

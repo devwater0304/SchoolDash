@@ -52,14 +52,26 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchTextChanged);
     _loadNearbySchools();
   }
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _searchController.removeListener(_onSearchTextChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchTextChanged() {
+    final value = _searchController.value;
+
+    // Korean IMEs update this value while a syllable is still being composed.
+    // Waiting for composition to finish prevents partial text from triggering
+    // requests and lets the platform render the composing glyph normally.
+    if (!value.composing.isCollapsed) return;
+    _queueSearch(value.text);
   }
 
   Future<void> _loadNearbySchools() async {
@@ -122,7 +134,7 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
   String _messageForSearchFailure(SchoolSearchFailure failure) {
     switch (failure.type) {
       case SchoolSearchFailureType.notConfigured:
-        return '학교 검색을 사용하려면 NEIS API 키를 설정해 주세요.';
+        return '개발용 NEIS API 키를 설정한 뒤 다시 검색해 주세요.';
       case SchoolSearchFailureType.network:
         return '연결을 확인한 뒤 다시 검색해 주세요.';
       case SchoolSearchFailureType.invalidResponse:
@@ -211,7 +223,6 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
             _searchController.clear();
             if (!isSearching) _loadNearbySchools();
           },
-          onQueryChanged: _queueSearch,
           onSchoolSelected: _selectSchool,
           onRetry: () => _searchSchools(_searchQuery),
         ),
@@ -228,7 +239,6 @@ class _SchoolStep extends StatelessWidget {
     required this.errorMessage,
     required this.searchController,
     required this.onSearchModeChanged,
-    required this.onQueryChanged,
     required this.onSchoolSelected,
     required this.onRetry,
   });
@@ -239,7 +249,6 @@ class _SchoolStep extends StatelessWidget {
   final String? errorMessage;
   final TextEditingController searchController;
   final ValueChanged<bool> onSearchModeChanged;
-  final ValueChanged<String> onQueryChanged;
   final ValueChanged<SchoolSearchResult> onSchoolSelected;
   final VoidCallback onRetry;
 
@@ -265,7 +274,12 @@ class _SchoolStep extends StatelessWidget {
           TextField(
             controller: searchController,
             autofocus: true,
-            onChanged: onQueryChanged,
+            style: AppTextStyles.input,
+            strutStyle: const StrutStyle(
+              fontFamily: AppTextStyles.fontFamily,
+              fontSize: 16,
+              forceStrutHeight: true,
+            ),
             decoration: InputDecoration(
               hintText: '학교 이름 입력',
               prefixIcon: const Icon(Icons.search_rounded),

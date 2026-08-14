@@ -58,6 +58,24 @@ void main() {
     );
   });
 
+  test('treats a whitespace-only API key as not configured', () async {
+    final repository = NeisSchoolSearchRepository(
+      config: const NeisApiConfig(apiKey: '   '),
+      client: MockClient((_) async => throw StateError('must not be called')),
+    );
+
+    await expectLater(
+      repository.searchSchools('새롬'),
+      throwsA(
+        isA<SchoolSearchFailure>().having(
+          (failure) => failure.type,
+          'type',
+          SchoolSearchFailureType.notConfigured,
+        ),
+      ),
+    );
+  });
+
   test('reports malformed NEIS rows safely', () async {
     final repository = NeisSchoolSearchRepository(
       config: const NeisApiConfig(apiKey: 'test-key'),
