@@ -42,6 +42,7 @@ lib/
 ```bash
 cp .env.example .env
 # .env 파일의 NEIS_API_KEY 값을 발급받은 키로 바꾼 뒤 실행
+# 공공데이터포털 위치 API의 요청 URL과 키도 함께 입력
 flutter run --dart-define-from-file=.env
 ```
 
@@ -52,6 +53,19 @@ flutter build web --dart-define=NEIS_API_KEY=발급받은_키
 ```
 
 키가 없을 때는 앱이 멈추지 않고 검색 화면에서 간단한 설정 안내와 재시도 경로를 보여줍니다. NEIS 응답은 DTO와 mapper를 거쳐 SchoolDash의 `SchoolSearchResult`로 변환되며, 선택한 학교의 교육청 코드와 행정표준 학교코드는 기존 `SchoolProfile`에 함께 저장됩니다.
+
+## 주변 학교 추천
+
+첫 온보딩 화면은 위치 권한이 허용된 경우 현재 위치에서 가까운 학교 5개를 자동으로 보여줍니다. 위치는 이 한 번의 조회에만 사용하며 백그라운드 추적이나 항상 허용 권한은 요청하지 않습니다. 위치 권한을 거부하거나 위치 서비스를 끈 경우에도 학교 이름 검색은 그대로 사용할 수 있습니다.
+
+주변 학교는 공공데이터포털의 `전국초중등학교위치표준데이터` Open API를 사용합니다. `.env`에 포털의 Open API 탭에서 제공되는 요청 URL과 발급 키를 추가하세요.
+
+```dotenv
+SCHOOL_LOCATION_API_URL=https://api.odcloud.kr/api/...
+SCHOOL_LOCATION_API_KEY=발급받은_공공데이터포털_키
+```
+
+공공데이터의 학교명·주소·좌표는 앱 내부에서 현재 위치와의 직선거리로 정렬됩니다. 선택 후보는 기존 NEIS `schoolInfo` 검색으로 학교명·학교급·주소/지역을 다시 확인한 뒤, 기존과 같은 `SchoolSearchResult`와 `SchoolProfile` 흐름으로 연결됩니다.
 
 ## NEIS 시간표
 

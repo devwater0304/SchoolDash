@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
 import 'config/neis_api_config.dart';
+import 'config/school_location_api_config.dart';
+import 'data/data_go_school_location_repository.dart';
 import 'data/key_value_store.dart';
 import 'data/local_school_profile_repository.dart';
+import 'data/location_based_school_search_repository.dart';
 import 'data/neis_school_repository.dart';
 import 'data/neis_school_search_repository.dart';
-import 'data/sample_school_search_repository.dart';
 import 'data/sample_timetable.dart';
 import 'repositories/school_profile_repository.dart';
 import 'repositories/school_search_repository.dart';
 import 'screens/app_start_gate.dart';
 import 'services/app_clock.dart';
+import 'services/geolocator_device_location_service.dart';
 import 'services/meal_load_service.dart';
 import 'services/timetable_load_service.dart';
 import 'theme/app_theme.dart';
@@ -22,16 +25,23 @@ void main() {
     config: const NeisApiConfig.fromEnvironment(),
     localTimeTemplate: localBellTimeTemplate,
   );
+  final schoolSearchRepository = NeisSchoolSearchRepository(
+    config: const NeisApiConfig.fromEnvironment(),
+  );
   final appDateController = AppDateController();
   runApp(
     SchoolDashApp(
       profileRepository: LocalSchoolProfileRepository(
         SharedPreferencesKeyValueStore(),
       ),
-      nearbySchoolRepository: const SampleSchoolSearchRepository(),
-      schoolSearchRepository: NeisSchoolSearchRepository(
-        config: const NeisApiConfig.fromEnvironment(),
+      nearbySchoolRepository: LocationBasedSchoolSearchRepository(
+        deviceLocationService: const GeolocatorDeviceLocationService(),
+        schoolLocationRepository: DataGoSchoolLocationRepository(
+          config: const SchoolLocationApiConfig.fromEnvironment(),
+        ),
+        neisRepository: schoolSearchRepository,
       ),
+      schoolSearchRepository: schoolSearchRepository,
       timetableLoadService: TimetableLoadService(
         primaryRepository: schoolRepository,
         fallbackRepository: sampleSchoolRepository,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
 import '../models/school_level.dart';
+import '../models/nearby_school_failure.dart';
 import '../models/school_search_failure.dart';
 import '../models/school_search_result.dart';
 import '../repositories/school_profile_repository.dart';
@@ -84,6 +85,9 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
       final schools = await widget.nearbySchoolRepository.getNearbySchools();
       if (!mounted) return;
       setState(() => _schools = schools);
+    } on NearbySchoolFailure catch (failure) {
+      if (!mounted) return;
+      setState(() => _schoolLoadError = _messageForNearbyFailure(failure));
     } catch (_) {
       if (!mounted) return;
       setState(() => _schoolLoadError = '학교 목록을 불러오지 못했어요. 검색으로 찾아볼까요?');
@@ -142,6 +146,22 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
         return '학교 정보를 읽지 못했어요. 다시 시도해 주세요.';
       case SchoolSearchFailureType.api:
         return '학교 검색을 잠시 사용할 수 없어요. 다시 시도해 주세요.';
+    }
+  }
+
+  String _messageForNearbyFailure(NearbySchoolFailure failure) {
+    switch (failure.type) {
+      case NearbySchoolFailureType.locationServiceDisabled:
+        return '위치 서비스를 켜면 주변 학교를 보여드려요.';
+      case NearbySchoolFailureType.permissionDenied:
+      case NearbySchoolFailureType.permissionDeniedForever:
+        return '위치를 허용하면 주변 학교를 보여드려요.';
+      case NearbySchoolFailureType.notConfigured:
+        return '주변 학교 정보를 준비 중이에요. 학교 이름으로 검색할 수 있어요.';
+      case NearbySchoolFailureType.network:
+      case NearbySchoolFailureType.invalidResponse:
+      case NearbySchoolFailureType.api:
+        return '주변 학교를 불러오지 못했어요. 학교 이름으로 검색해 보세요.';
     }
   }
 
@@ -226,7 +246,9 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
             if (!isSearching) _loadNearbySchools();
           },
           onSchoolSelected: _selectSchool,
-          onRetry: () => _searchSchools(_searchQuery),
+          onRetry: () => _isSearching
+              ? _searchSchools(_searchQuery)
+              : _loadNearbySchools(),
         ),
       ),
     );
@@ -272,56 +294,43 @@ class _SchoolStep extends StatelessWidget {
           style: AppTextStyles.caption.copyWith(fontSize: 14),
         ),
         const SizedBox(height: AppSpacing.large),
-        if (isSearching)
-          TextField(
-            controller: searchController,
-            autofocus: true,
-            style: AppTextStyles.input,
-            strutStyle: const StrutStyle(
-              fontFamily: AppTextStyles.fontFamily,
-              fontSize: 16,
-              forceStrutHeight: true,
+        TextField(
+          controller: searchController,
+          autofocus: false,
+          onTap: () => onSearchModeChanged(true),
+          style: AppTextStyles.input,
+          strutStyle: const StrutStyle(
+            fontFamily: AppTextStyles.fontFamily,
+            fontSize: 16,
+            forceStrutHeight: true,
+          ),
+          decoration: InputDecoration(
+            hintText: '학교 이름 입력',
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: isSearching
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () {
+                      searchController.clear();
+                      onSearchModeChanged(false);
+                    },
+                  )
+                : null,
+            filled: true,
+            fillColor: AppColors.skySoft,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
             ),
-            decoration: InputDecoration(
-              hintText: '학교 이름 입력',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () {
-                  searchController.clear();
-                  onSearchModeChanged(false);
-                },
-              ),
-              filled: true,
-              fillColor: AppColors.skySoft,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.line),
-              ),
-            ),
-          )
-        else
-          const _LocationHint(),
-        if (!isSearching)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => onSearchModeChanged(true),
-              icon: const Icon(Icons.search_rounded),
-              label: const Text('다른 학교 찾기'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.skyDark,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.line),
             ),
           ),
+        ),
         const SizedBox(height: AppSpacing.large),
         Text(
-          isSearching ? '검색 결과' : '현재 위치 근처',
+          isSearching ? '검색 결과' : '내 주변 학교',
           style: AppTextStyles.sectionTitle,
         ),
         const SizedBox(height: 14),
@@ -345,30 +354,6 @@ class _SchoolStep extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _LocationHint extends StatelessWidget {
-  const _LocationHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.skyPale,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.location_on_outlined, color: AppColors.skyDark),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text('위치는 학교를 찾는 데만 사용돼요.', style: AppTextStyles.caption),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -22,7 +22,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('다른 학교 찾기'));
+    await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
 
     tester.testTextInput.updateEditingValue(
