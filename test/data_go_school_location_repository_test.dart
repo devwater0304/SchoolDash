@@ -15,14 +15,23 @@ void main() {
         baseUri: 'https://example.test/schools',
       ),
       client: MockClient((request) async {
-        requestedPages.add(request.url.queryParameters['page']!);
+        requestedPages.add(request.url.queryParameters['pageNo']!);
         expect(request.url.queryParameters['serviceKey'], 'test-key');
+        expect(request.url.queryParameters['numOfRows'], '100');
+        expect(request.url.queryParameters['type'], 'json');
+        expect(request.headers.containsKey('authorization'), isFalse);
+        expect(request.headers.containsKey('servicekey'), isFalse);
         return http.Response(
           jsonEncode({
-            'totalCount': 2,
-            'data': request.url.queryParameters['page'] == '1'
-                ? [_row('가까운학교', '37.5')]
-                : [_row('다음학교', '37.6')],
+            'header': {'resultCode': '00', 'resultMsg': 'NORMAL SERVICE.'},
+            'body': {
+              'totalCount': 2,
+              'items': {
+                'item': request.url.queryParameters['pageNo'] == '1'
+                    ? [_row('가까운학교', '37.5')]
+                    : [_row('다음학교', '37.6')],
+              },
+            },
           }),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},

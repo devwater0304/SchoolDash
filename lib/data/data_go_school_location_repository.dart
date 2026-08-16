@@ -29,15 +29,15 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
   }
 
   Future<List<SchoolLocation>> _loadAllPages() async {
-    const perPage = 1000;
+    const numOfRows = 100;
     final schools = <SchoolLocation>[];
     var receivedSchoolCount = 0;
     var validCoordinateCount = 0;
     var page = 1;
     int? totalCount;
     do {
-      final json = await _getPage(page: page, perPage: perPage);
-      final rows = json['data'];
+      final json = await _getPage(page: page, numOfRows: numOfRows);
+      final rows = _readRows(json);
       if (rows is! List) {
         throw const NearbySchoolFailure(
           NearbySchoolFailureType.invalidResponse,
@@ -51,7 +51,7 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
         '(total=$receivedSchoolCount, valid coordinates=$validCoordinateCount)',
       );
       schools.addAll(rowMaps.map(_schoolFromJson));
-      final readTotalCount = json['totalCount'];
+      final readTotalCount = _readTotalCount(json);
       totalCount = readTotalCount is int
           ? readTotalCount
           : int.tryParse('$readTotalCount');
@@ -67,14 +67,14 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
 
   Future<Map<String, dynamic>> _getPage({
     required int page,
-    required int perPage,
+    required int numOfRows,
   }) async {
     final uri = Uri.parse(config.baseUri).replace(
       queryParameters: {
         ...Uri.parse(config.baseUri).queryParameters,
-        'page': '$page',
-        'perPage': '$perPage',
-        'returnType': 'JSON',
+        'pageNo': '$page',
+        'numOfRows': '$numOfRows',
+        'type': 'json',
         'serviceKey': config.apiKey,
       },
     );
@@ -94,15 +94,16 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
       'length: ${config.apiKey.length}',
     );
     debugPrint(
-      '[School API] Query parameters: '
-      'page=$page, perPage=$perPage, returnType=JSON',
+      '[School API] Query parameter names: ${uri.queryParameters.keys.join(', ')}',
+    );
+    const headers = <String, String>{};
+    debugPrint(
+      '[School API] Headers contain serviceKey: '
+      '${headers.keys.any((name) => name.toLowerCase() == 'servicekey')}',
     );
     http.Response response;
     try {
-      response = await _client.get(
-        uri,
-        headers: {'Authorization': 'Infuser ${config.apiKey}'},
-      );
+      response = await _client.get(uri, headers: headers);
     } on Exception catch (error) {
       debugPrint(
         '[School API] HTTP request failed before receiving a response: $error',
@@ -112,7 +113,10 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
     debugPrint(
       '[School API] HTTP response status: ${response.statusCode} (page $page)',
     );
-    debugPrint('[School API] Response body: ${response.body}');
+    final responsePreview = response.body.length > 500
+        ? '${response.body.substring(0, 500)}…'
+        : response.body;
+    debugPrint('[School API] Response body preview: $responsePreview');
     if (response.statusCode != 200) {
       throw NearbySchoolFailure(
         NearbySchoolFailureType.network,
@@ -128,6 +132,36 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
     } on TypeError {
       throw const NearbySchoolFailure(NearbySchoolFailureType.invalidResponse);
     }
+  }
+
+  List<dynamic>? _readRows(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is List) return data;
+
+    final body = _readBody(json);
+    if (body == null) return null;
+    final items = body['items'];
+    if (items is! Map<String, dynamic>) return null;
+    final item = items['item'];
+    if (item is List) return item;
+    if (item is Map<String, dynamic>) return [item];
+    return const [];
+  }
+
+  Object? _readTotalCount(Map<String, dynamic> json) {
+    final dataTotal = json['totalCount'];
+    if (dataTotal != null) return dataTotal;
+    return _readBody(json)?['totalCount'];
+  }
+
+  Map<String, dynamic>? _readBody(Map<String, dynamic> json) {
+    final directBody = json['body'];
+    if (directBody is Map<String, dynamic>) return directBody;
+    final response = json['response'];
+    if (response is! Map<String, dynamic>) return null;
+    final body = response['body'];
+    if (body is! Map<String, dynamic>) return null;
+    return body;
   }
 
   SchoolLocation _schoolFromJson(Map<String, dynamic> json) {
