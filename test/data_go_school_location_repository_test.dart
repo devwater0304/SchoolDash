@@ -17,7 +17,7 @@ void main() {
       client: MockClient((request) async {
         requestedPages.add(request.url.queryParameters['pageNo']!);
         expect(request.url.queryParameters['serviceKey'], 'test-key');
-        expect(request.url.queryParameters['numOfRows'], '100');
+        expect(request.url.queryParameters['numOfRows'], '1000');
         expect(request.url.queryParameters['type'], 'json');
         expect(request.headers.containsKey('authorization'), isFalse);
         expect(request.headers.containsKey('servicekey'), isFalse);

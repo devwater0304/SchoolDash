@@ -27,45 +27,66 @@ class LocationBasedSchoolSearchRepository implements SchoolSearchRepository {
 
   @override
   Future<List<SchoolSearchResult>> getNearbySchools() async {
-    final currentPosition = await deviceLocationService.getCurrentPosition();
-    final locations = await schoolLocationRepository.getSchoolLocations();
-    final candidates =
-        locations
-            .map(
-              (school) => _LocatedSchool(
-                school,
-                distanceService.metersBetween(currentPosition, school.position),
-              ),
-            )
-            .toList()
-          ..sort(
-            (left, right) =>
-                left.distanceMeters.compareTo(right.distanceMeters),
-          );
+    try {
+      final currentPosition = await deviceLocationService.getCurrentPosition();
+      final locations = await schoolLocationRepository.getSchoolLocations();
+      final candidates =
+          locations
+              .map(
+                (school) => _LocatedSchool(
+                  school,
+                  distanceService.metersBetween(
+                    currentPosition,
+                    school.position,
+                  ),
+                ),
+              )
+              .toList()
+            ..sort(
+              (left, right) =>
+                  left.distanceMeters.compareTo(right.distanceMeters),
+            );
 
-    debugPrint(
-      '[Nearby School] Distance calculation completed: ${candidates.length} schools',
-    );
-    if (candidates.isNotEmpty) {
-      final closest = candidates.first;
       debugPrint(
-        '[Nearby School] Closest school: ${closest.school.name} '
-        '(${closest.distanceMeters}m)',
+        '[Nearby School] Distance calculation completed: '
+        '${candidates.length} schools',
       );
-    }
-
-    final resolved = <SchoolSearchResult>[];
-    for (final candidate in candidates.take(matchCandidateLimit)) {
-      final school = await _resolveNeisSchool(candidate.school);
-      if (school != null) {
-        resolved.add(_withDistance(school, candidate.distanceMeters));
+      if (candidates.isNotEmpty) {
+        final closest = candidates.first;
+        debugPrint(
+          '[Nearby School] Closest school: ${closest.school.name} '
+          '(${closest.distanceMeters}m)',
+        );
       }
-      if (resolved.length == resultLimit) break;
+
+      final resolved = <SchoolSearchResult>[];
+      for (final candidate in candidates.take(matchCandidateLimit)) {
+        final school = await _resolveNeisSchool(candidate.school);
+        if (school != null) {
+          resolved.add(_withDistance(school, candidate.distanceMeters));
+        } else {
+          debugPrint(
+            '[Nearby School] NEIS match not found: ${candidate.school.name}.',
+          );
+        }
+        if (resolved.length == resultLimit) break;
+      }
+      debugPrint(
+        '[Nearby School] Nearby schools delivered to UI: ${resolved.length}',
+      );
+      debugPrint(
+        '[Nearby School] Final UI candidates: '
+        '${resolved.map((school) => '${school.name} (${school.distanceMeters}m)').join(', ')}',
+      );
+      return List.unmodifiable(resolved);
+    } on Exception catch (error, stackTrace) {
+      debugPrint('[Nearby School] Nearby school lookup failed: $error');
+      debugPrintStack(
+        label: '[Nearby School] Lookup stack trace',
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
-    debugPrint(
-      '[Nearby School] Nearby schools delivered to UI: ${resolved.length}',
-    );
-    return List.unmodifiable(resolved);
   }
 
   @override

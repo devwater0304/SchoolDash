@@ -12,6 +12,16 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
 
   @override
   Future<GeoPoint> getCurrentPosition() async {
+    if (kIsWeb && kDebugMode) {
+      const position = GeoPoint(latitude: 37.55059, longitude: 126.85997);
+      debugPrint('[GPS] Web debug: using fixed test position...');
+      debugPrint(
+        '[GPS] Position received: '
+        'lat=${position.latitude}, lng=${position.longitude}',
+      );
+      return position;
+    }
+
     final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
     debugPrint('[GPS] Location service enabled: $isServiceEnabled');
     if (!isServiceEnabled) {

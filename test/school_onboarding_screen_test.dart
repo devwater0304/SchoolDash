@@ -81,6 +81,61 @@ void main() {
     expect(find.text('1학년'), findsOneWidget);
     expect(find.text('6학년'), findsOneWidget);
   });
+
+  testWidgets(
+    'saves the selected nearby school through the existing profile flow',
+    (tester) async {
+      const nearbySchool = SchoolSearchResult(
+        schoolId: 'nearby-school',
+        name: '가까운중학교',
+        roadAddress: '서울특별시 강서구 가까이로 1',
+        region: '서울특별시',
+        schoolType: '중학교',
+        educationOfficeCode: 'B10',
+        standardSchoolCode: '1234567',
+        distanceMeters: 220,
+      );
+      const repository = SampleSchoolSearchRepository(schools: [nearbySchool]);
+      final profiles = _MemoryProfileRepository();
+      var didSave = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SchoolOnboardingScreen(
+            profileRepository: profiles,
+            nearbySchoolRepository: repository,
+            schoolSearchRepository: repository,
+            onProfileSaved: () => didSave = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('가까운중학교'));
+      await tester.pumpAndSettle();
+      expect(find.text('학년과 반을 알려주세요'), findsOneWidget);
+      await tester.tap(find.text('1학년'));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -250));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('반을 선택하세요'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1반').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('설정 완료'));
+      await tester.pumpAndSettle();
+
+      expect(didSave, isTrue);
+      expect(profiles.saved, isNotNull);
+      expect(profiles.saved!.schoolId, nearbySchool.schoolId);
+      expect(
+        profiles.saved!.standardSchoolCode,
+        nearbySchool.standardSchoolCode,
+      );
+      expect(profiles.saved!.grade, 1);
+      expect(profiles.saved!.classNumber, 1);
+    },
+  );
 }
 
 class _NoopProfileRepository implements SchoolProfileRepository {
@@ -95,4 +150,20 @@ class _NoopProfileRepository implements SchoolProfileRepository {
 
   @override
   Future<void> saveProfile(SchoolProfile profile) async {}
+}
+
+class _MemoryProfileRepository implements SchoolProfileRepository {
+  SchoolProfile? saved;
+
+  @override
+  Future<void> clearProfile() async => saved = null;
+
+  @override
+  Future<bool> hasProfile() async => saved != null;
+
+  @override
+  Future<SchoolProfile?> loadProfile() async => saved;
+
+  @override
+  Future<void> saveProfile(SchoolProfile profile) async => saved = profile;
 }

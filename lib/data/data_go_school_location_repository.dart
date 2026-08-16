@@ -29,38 +29,88 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
   }
 
   Future<List<SchoolLocation>> _loadAllPages() async {
-    const numOfRows = 100;
+    // The live endpoint returns 1,000 rows successfully for this parameter.
+    // This reduces the nationwide collection from 121 requests to 13.
+    const numOfRows = 1000;
     final schools = <SchoolLocation>[];
     var receivedSchoolCount = 0;
     var validCoordinateCount = 0;
     var page = 1;
     int? totalCount;
-    do {
-      final json = await _getPage(page: page, numOfRows: numOfRows);
-      final rows = _readRows(json);
-      if (rows is! List) {
-        throw const NearbySchoolFailure(
-          NearbySchoolFailureType.invalidResponse,
+    while (true) {
+      try {
+        debugPrint(
+          '[School API] Page $page request starting '
+          '(numOfRows=$numOfRows).',
         );
+        final json = await _getPage(page: page, numOfRows: numOfRows);
+        final rows = _readRows(json);
+        if (rows is! List) {
+          throw const NearbySchoolFailure(
+            NearbySchoolFailureType.invalidResponse,
+          );
+        }
+        final rowMaps = rows.whereType<Map<String, dynamic>>().toList();
+        final validCoordinateRows = rowMaps
+            .where(_hasValidCoordinates)
+            .toList();
+        receivedSchoolCount += rowMaps.length;
+        validCoordinateCount += validCoordinateRows.length;
+
+        var invalidSchoolCount = 0;
+        for (final row in validCoordinateRows) {
+          try {
+            schools.add(_schoolFromJson(row));
+          } on FormatException {
+            invalidSchoolCount++;
+            debugPrint(
+              '[School API] Page $page skipped malformed school row: '
+              'schoolId=${row['schoolId'] ?? 'unknown'}, '
+              'name=${row['schoolNm'] ?? 'unknown'}.',
+            );
+          }
+        }
+        final readTotalCount = _readTotalCount(json);
+        totalCount = readTotalCount is int
+            ? readTotalCount
+            : int.tryParse('$readTotalCount');
+        debugPrint(
+          '[School API] Page $page request succeeded: ${rowMaps.length} rows, '
+          '${validCoordinateRows.length} valid coordinates, '
+          'collected=${schools.length}/${totalCount ?? 'unknown'}'
+          '${invalidSchoolCount == 0 ? '' : ', skipped=$invalidSchoolCount malformed rows'}.',
+        );
+
+        if (rows.isEmpty) {
+          debugPrint('[School API] Page loop ended: page $page was empty.');
+          break;
+        }
+        if (totalCount == null) {
+          debugPrint('[School API] Page loop ended: totalCount was missing.');
+          break;
+        }
+        if (receivedSchoolCount >= totalCount) {
+          debugPrint(
+            '[School API] Page loop ended: received all $totalCount API rows.',
+          );
+          break;
+        }
+        page++;
+      } on Exception catch (error, stackTrace) {
+        debugPrint('[School API] Page $page request failed: $error');
+        debugPrintStack(
+          label: '[School API] Page $page stack trace',
+          stackTrace: stackTrace,
+        );
+        rethrow;
       }
-      final rowMaps = rows.whereType<Map<String, dynamic>>().toList();
-      receivedSchoolCount += rowMaps.length;
-      validCoordinateCount += rowMaps.where(_hasValidCoordinates).length;
-      debugPrint(
-        '[School API] Page $page received: ${rowMaps.length} schools '
-        '(total=$receivedSchoolCount, valid coordinates=$validCoordinateCount)',
-      );
-      schools.addAll(rowMaps.map(_schoolFromJson));
-      final readTotalCount = _readTotalCount(json);
-      totalCount = readTotalCount is int
-          ? readTotalCount
-          : int.tryParse('$readTotalCount');
-      if (rows.isEmpty || totalCount == null) break;
-      page++;
-    } while (schools.length < totalCount);
+    }
     debugPrint('[School API] Total schools received: $receivedSchoolCount');
     debugPrint(
       '[School API] Schools with valid coordinates: $validCoordinateCount',
+    );
+    debugPrint(
+      '[School API] Schools collected for distance calculation: ${schools.length}',
     );
     return List.unmodifiable(schools);
   }
