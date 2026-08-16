@@ -32,26 +32,30 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
       );
     }
     try {
+      debugPrint('[GPS] Requesting current position...');
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
         ),
       );
       debugPrint(
-        '[GPS] Current position: '
-        'latitude=${position.latitude}, longitude=${position.longitude}',
+        '[GPS] Position received: '
+        'lat=${position.latitude}, lng=${position.longitude}',
       );
       return GeoPoint(
         latitude: position.latitude,
         longitude: position.longitude,
       );
-    } on LocationServiceDisabledException {
+    } on LocationServiceDisabledException catch (error) {
+      debugPrint('[GPS] Position error: $error');
       throw const NearbySchoolFailure(
         NearbySchoolFailureType.locationServiceDisabled,
       );
-    } on PermissionDeniedException {
+    } on PermissionDeniedException catch (error) {
+      debugPrint('[GPS] Position error: $error');
       throw const NearbySchoolFailure(NearbySchoolFailureType.permissionDenied);
-    } on Exception {
+    } on Exception catch (error) {
+      debugPrint('[GPS] Position error: $error');
       throw const NearbySchoolFailure(NearbySchoolFailureType.network);
     }
   }
