@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -33,10 +35,19 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
     }
     try {
       Position? lastKnownPosition;
-      try {
-        lastKnownPosition = await Geolocator.getLastKnownPosition();
-      } on Exception catch (error) {
-        debugPrint('[GPS] Last known position error: $error');
+      if (kIsWeb) {
+        debugPrint('[GPS] Web detected; skipping last known position.');
+      } else {
+        try {
+          debugPrint('[GPS] Requesting last known position...');
+          lastKnownPosition = await Geolocator.getLastKnownPosition();
+          debugPrint(
+            '[GPS] Last known position result: '
+            '${lastKnownPosition == null ? 'unavailable' : 'available'}',
+          );
+        } on Exception catch (error) {
+          debugPrint('[GPS] Last known position error: $error');
+        }
       }
       if (lastKnownPosition != null) {
         debugPrint('[GPS] Using last known position...');
@@ -49,12 +60,14 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
           longitude: lastKnownPosition.longitude,
         );
       }
-      debugPrint('[GPS] Requesting current position...');
+      debugPrint('[GPS] Requesting current position (timeout: 15s)...');
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 15),
         ),
       );
+      debugPrint('[GPS] Current position request completed.');
       debugPrint(
         '[GPS] Position received: '
         'lat=${position.latitude}, lng=${position.longitude}',
@@ -71,6 +84,9 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
     } on PermissionDeniedException catch (error) {
       debugPrint('[GPS] Position error: $error');
       throw const NearbySchoolFailure(NearbySchoolFailureType.permissionDenied);
+    } on TimeoutException catch (error) {
+      debugPrint('[GPS] Position error: $error');
+      throw const NearbySchoolFailure(NearbySchoolFailureType.network);
     } on Exception catch (error) {
       debugPrint('[GPS] Position error: $error');
       throw const NearbySchoolFailure(NearbySchoolFailureType.network);
