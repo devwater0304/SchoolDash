@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/geo_point.dart';
@@ -9,14 +10,18 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
 
   @override
   Future<GeoPoint> getCurrentPosition() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
+    final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+    debugPrint('[GPS] Location service enabled: $isServiceEnabled');
+    if (!isServiceEnabled) {
       throw const NearbySchoolFailure(
         NearbySchoolFailureType.locationServiceDisabled,
       );
     }
     var permission = await Geolocator.checkPermission();
+    debugPrint('[GPS] Location permission: $permission');
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      debugPrint('[GPS] Location permission after request: $permission');
     }
     if (permission == LocationPermission.denied) {
       throw const NearbySchoolFailure(NearbySchoolFailureType.permissionDenied);
@@ -31,6 +36,10 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
         ),
+      );
+      debugPrint(
+        '[GPS] Current position: '
+        'latitude=${position.latitude}, longitude=${position.longitude}',
       );
       return GeoPoint(
         latitude: position.latitude,

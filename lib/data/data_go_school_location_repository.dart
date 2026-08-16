@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/school_location_api_config.dart';
@@ -30,6 +31,8 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
   Future<List<SchoolLocation>> _loadAllPages() async {
     const perPage = 1000;
     final schools = <SchoolLocation>[];
+    var receivedSchoolCount = 0;
+    var validCoordinateCount = 0;
     var page = 1;
     int? totalCount;
     do {
@@ -40,9 +43,14 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
           NearbySchoolFailureType.invalidResponse,
         );
       }
-      schools.addAll(
-        rows.whereType<Map<String, dynamic>>().map(_schoolFromJson),
+      final rowMaps = rows.whereType<Map<String, dynamic>>().toList();
+      receivedSchoolCount += rowMaps.length;
+      validCoordinateCount += rowMaps.where(_hasValidCoordinates).length;
+      debugPrint(
+        '[School API] Page $page received: ${rowMaps.length} schools '
+        '(total=$receivedSchoolCount, valid coordinates=$validCoordinateCount)',
       );
+      schools.addAll(rowMaps.map(_schoolFromJson));
       final readTotalCount = json['totalCount'];
       totalCount = readTotalCount is int
           ? readTotalCount
@@ -50,6 +58,10 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
       if (rows.isEmpty || totalCount == null) break;
       page++;
     } while (schools.length < totalCount);
+    debugPrint('[School API] Total schools received: $receivedSchoolCount');
+    debugPrint(
+      '[School API] Schools with valid coordinates: $validCoordinateCount',
+    );
     return List.unmodifiable(schools);
   }
 
@@ -73,8 +85,14 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
         headers: {'Authorization': 'Infuser ${config.apiKey}'},
       );
     } on Exception {
+      debugPrint(
+        '[School API] HTTP request failed before receiving a response.',
+      );
       throw const NearbySchoolFailure(NearbySchoolFailureType.network);
     }
+    debugPrint(
+      '[School API] HTTP response status: ${response.statusCode} (page $page)',
+    );
     if (response.statusCode != 200) {
       throw NearbySchoolFailure(
         NearbySchoolFailureType.network,
@@ -117,5 +135,16 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
         longitude: coordinate('longitude'),
       ),
     );
+  }
+
+  bool _hasValidCoordinates(Map<String, dynamic> json) {
+    final latitude = double.tryParse('${json['latitude']}');
+    final longitude = double.tryParse('${json['longitude']}');
+    return latitude != null &&
+        longitude != null &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180;
   }
 }

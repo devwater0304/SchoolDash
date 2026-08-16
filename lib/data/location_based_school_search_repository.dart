@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/school_location.dart';
 import '../models/school_search_result.dart';
 import '../repositories/device_location_service.dart';
@@ -41,6 +43,17 @@ class LocationBasedSchoolSearchRepository implements SchoolSearchRepository {
                 left.distanceMeters.compareTo(right.distanceMeters),
           );
 
+    debugPrint(
+      '[Nearby School] Distance calculation completed: ${candidates.length} schools',
+    );
+    if (candidates.isNotEmpty) {
+      final closest = candidates.first;
+      debugPrint(
+        '[Nearby School] Closest school: ${closest.school.name} '
+        '(${closest.distanceMeters}m)',
+      );
+    }
+
     final resolved = <SchoolSearchResult>[];
     for (final candidate in candidates.take(matchCandidateLimit)) {
       final school = await _resolveNeisSchool(candidate.school);
@@ -49,6 +62,9 @@ class LocationBasedSchoolSearchRepository implements SchoolSearchRepository {
       }
       if (resolved.length == resultLimit) break;
     }
+    debugPrint(
+      '[Nearby School] Nearby schools delivered to UI: ${resolved.length}',
+    );
     return List.unmodifiable(resolved);
   }
 
