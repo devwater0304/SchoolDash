@@ -32,6 +32,23 @@ class GeolocatorDeviceLocationService implements DeviceLocationService {
       );
     }
     try {
+      Position? lastKnownPosition;
+      try {
+        lastKnownPosition = await Geolocator.getLastKnownPosition();
+      } on Exception catch (error) {
+        debugPrint('[GPS] Last known position error: $error');
+      }
+      if (lastKnownPosition != null) {
+        debugPrint('[GPS] Using last known position...');
+        debugPrint(
+          '[GPS] Position received: '
+          'lat=${lastKnownPosition.latitude}, lng=${lastKnownPosition.longitude}',
+        );
+        return GeoPoint(
+          latitude: lastKnownPosition.latitude,
+          longitude: lastKnownPosition.longitude,
+        );
+      }
       debugPrint('[GPS] Requesting current position...');
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(

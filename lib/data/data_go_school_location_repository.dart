@@ -78,21 +78,41 @@ class DataGoSchoolLocationRepository implements SchoolLocationRepository {
         'serviceKey': config.apiKey,
       },
     );
+    final redactedUri = uri.replace(
+      queryParameters: {...uri.queryParameters, 'serviceKey': '[REDACTED]'},
+    );
+    final endpoint = Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+    );
+    debugPrint('[School API] Request endpoint: $endpoint');
+    debugPrint('[School API] Request URL: $redactedUri');
+    debugPrint(
+      '[School API] serviceKey present: ${config.apiKey.trim().isNotEmpty}, '
+      'length: ${config.apiKey.length}',
+    );
+    debugPrint(
+      '[School API] Query parameters: '
+      'page=$page, perPage=$perPage, returnType=JSON',
+    );
     http.Response response;
     try {
       response = await _client.get(
         uri,
         headers: {'Authorization': 'Infuser ${config.apiKey}'},
       );
-    } on Exception {
+    } on Exception catch (error) {
       debugPrint(
-        '[School API] HTTP request failed before receiving a response.',
+        '[School API] HTTP request failed before receiving a response: $error',
       );
       throw const NearbySchoolFailure(NearbySchoolFailureType.network);
     }
     debugPrint(
       '[School API] HTTP response status: ${response.statusCode} (page $page)',
     );
+    debugPrint('[School API] Response body: ${response.body}');
     if (response.statusCode != 200) {
       throw NearbySchoolFailure(
         NearbySchoolFailureType.network,
