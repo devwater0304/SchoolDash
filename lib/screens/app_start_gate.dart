@@ -75,6 +75,10 @@ class _AppStartGateState extends State<AppStartGate> {
       mealLoadService: widget.mealLoadService,
       clock: widget.clock,
       dateController: widget.dateController,
+      profileRepository: widget.profileRepository,
+      nearbySchoolRepository: widget.nearbySchoolRepository,
+      schoolSearchRepository: widget.schoolSearchRepository,
+      onProfileChanged: _reloadProfile,
     );
   }
 }

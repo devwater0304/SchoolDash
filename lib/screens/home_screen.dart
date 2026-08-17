@@ -16,10 +16,10 @@ import '../services/timetable_load_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/app_date_picker.dart';
 import '../widgets/current_status_card.dart';
 import '../widgets/home_meal_card.dart';
 import '../widgets/timetable_tile.dart';
-import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -29,6 +29,7 @@ class HomeScreen extends StatefulWidget {
     this.dateController,
     this.mealLoadService,
     this.isActive = true,
+    this.onProfileTap,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class HomeScreen extends StatefulWidget {
   final AppDateController? dateController;
   final MealLoadService? mealLoadService;
   final bool isActive;
+  final VoidCallback? onProfileTap;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -196,13 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onDateTap: widget.dateController == null
                       ? null
                       : _showDatePicker,
-                  onProfileTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SettingsScreen(),
-                      ),
-                    );
-                  },
+                  onProfileTap: widget.onProfileTap,
                 ),
                 const SizedBox(height: AppSpacing.large),
                 CurrentStatusCard(
@@ -374,38 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _showDatePicker() async {
     final controller = widget.dateController;
     if (controller == null) return;
-    final useCurrent = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.today_outlined),
-              title: const Text('현재 날짜 사용'),
-              onTap: () => Navigator.pop(context, true),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_outlined),
-              title: const Text('날짜 선택'),
-              onTap: () => Navigator.pop(context, false),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || useCurrent == null) return;
-    if (useCurrent) {
-      controller.useCurrentDate();
-      return;
-    }
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: controller.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
-    );
-    if (picked != null) controller.selectDate(picked);
+    await showAppDatePicker(context, controller);
   }
 }
 
@@ -517,13 +482,13 @@ class _Header extends StatelessWidget {
     required this.dateLabel,
     required this.isUsingSelectedDate,
     this.onDateTap,
-    required this.onProfileTap,
+    this.onProfileTap,
   });
 
   final String dateLabel;
   final bool isUsingSelectedDate;
   final VoidCallback? onDateTap;
-  final VoidCallback onProfileTap;
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {

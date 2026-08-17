@@ -23,6 +23,7 @@ class SchoolOnboardingScreen extends StatefulWidget {
     required this.onProfileSaved,
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
+    this.initialProfile,
     super.key,
   });
 
@@ -30,6 +31,7 @@ class SchoolOnboardingScreen extends StatefulWidget {
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
   final VoidCallback onProfileSaved;
+  final SchoolProfile? initialProfile;
 
   @override
   State<SchoolOnboardingScreen> createState() => _SchoolOnboardingScreenState();
@@ -54,6 +56,8 @@ class _SchoolOnboardingScreenState extends State<SchoolOnboardingScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedGrade = widget.initialProfile?.grade;
+    _selectedClassNumber = widget.initialProfile?.classNumber;
     _searchController.addListener(_onSearchTextChanged);
     _loadNearbySchools();
   }

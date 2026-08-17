@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
+import '../repositories/school_profile_repository.dart';
+import '../repositories/school_search_repository.dart';
 import '../services/app_clock.dart';
 import '../services/meal_load_service.dart';
 import '../services/timetable_load_service.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'home_screen.dart';
 import 'meal_screen.dart';
+import 'settings_screen.dart';
 import 'weekly_timetable_screen.dart';
 
 class SchoolDashShell extends StatefulWidget {
@@ -15,6 +18,10 @@ class SchoolDashShell extends StatefulWidget {
     required this.timetableLoadService,
     this.mealLoadService,
     this.dateController,
+    this.profileRepository,
+    this.nearbySchoolRepository,
+    this.schoolSearchRepository,
+    this.onProfileChanged,
     required this.clock,
     super.key,
   });
@@ -24,6 +31,10 @@ class SchoolDashShell extends StatefulWidget {
   final MealLoadService? mealLoadService;
   final AppClock clock;
   final AppDateController? dateController;
+  final SchoolProfileRepository? profileRepository;
+  final SchoolSearchRepository? nearbySchoolRepository;
+  final SchoolSearchRepository? schoolSearchRepository;
+  final Future<void> Function()? onProfileChanged;
 
   @override
   State<SchoolDashShell> createState() => _SchoolDashShellState();
@@ -31,6 +42,31 @@ class SchoolDashShell extends StatefulWidget {
 
 class _SchoolDashShellState extends State<SchoolDashShell> {
   var _selectedIndex = 1;
+
+  Future<void> _openSettings(BuildContext context) async {
+    final profileRepository = widget.profileRepository;
+    final nearbySchoolRepository = widget.nearbySchoolRepository;
+    final schoolSearchRepository = widget.schoolSearchRepository;
+    final dateController = widget.dateController;
+    if (profileRepository == null ||
+        nearbySchoolRepository == null ||
+        schoolSearchRepository == null ||
+        dateController == null) {
+      return;
+    }
+    final profileChanged = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(
+          profile: widget.profile,
+          profileRepository: profileRepository,
+          nearbySchoolRepository: nearbySchoolRepository,
+          schoolSearchRepository: schoolSearchRepository,
+          dateController: dateController,
+        ),
+      ),
+    );
+    if (profileChanged == true) await widget.onProfileChanged?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +88,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             dateController: widget.dateController,
             mealLoadService: widget.mealLoadService,
             isActive: _selectedIndex == 1,
+            onProfileTap: () => _openSettings(context),
           ),
           if (widget.mealLoadService case final mealLoadService?)
             MealScreen(
