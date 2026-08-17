@@ -19,6 +19,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/current_status_card.dart';
 import '../widgets/home_meal_card.dart';
 import '../widgets/timetable_tile.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -195,6 +196,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   onDateTap: widget.dateController == null
                       ? null
                       : _showDatePicker,
+                  onProfileTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: AppSpacing.large),
                 CurrentStatusCard(
@@ -509,11 +517,13 @@ class _Header extends StatelessWidget {
     required this.dateLabel,
     required this.isUsingSelectedDate,
     this.onDateTap,
+    required this.onProfileTap,
   });
 
   final String dateLabel;
   final bool isUsingSelectedDate;
   final VoidCallback? onDateTap;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -543,17 +553,15 @@ class _Header extends StatelessWidget {
             ),
           ],
         ),
-        Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: AppColors.skyPale,
-            shape: BoxShape.circle,
+        IconButton(
+          onPressed: onProfileTap,
+          tooltip: '설정',
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.skyPale,
+            foregroundColor: AppColors.skyDark,
+            minimumSize: const Size(44, 44),
           ),
-          child: const Icon(
-            Icons.notifications_none_rounded,
-            color: AppColors.skyDark,
-          ),
+          icon: const Icon(Icons.person_outline_rounded),
         ),
       ],
     );
