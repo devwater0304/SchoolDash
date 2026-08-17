@@ -42,7 +42,7 @@ class _MealScreenState extends State<MealScreen> {
   var _isLoading = false;
   var _hasLoaded = false;
   var _showHistory = false;
-  DateTime? _selectedMealDate;
+  DateTime? _expandedMealDate;
 
   @override
   void initState() {
@@ -66,7 +66,7 @@ class _MealScreenState extends State<MealScreen> {
         _schoolStatus = null;
         _hasLoaded = false;
         _showHistory = false;
-        _selectedMealDate = null;
+        _expandedMealDate = null;
       });
       if (widget.isActive) _loadMeals();
     }
@@ -79,7 +79,7 @@ class _MealScreenState extends State<MealScreen> {
       _result = null;
       _schoolStatus = null;
       _hasLoaded = false;
-      _selectedMealDate = null;
+      _expandedMealDate = null;
     });
     if (widget.isActive) _loadMeals();
   }
@@ -137,8 +137,6 @@ class _MealScreenState extends State<MealScreen> {
   }
 
   Meal? _mainMeal() {
-    final selectedMealDate = _selectedMealDate;
-    if (selectedMealDate != null) return _mealFor(selectedMealDate);
     if (!_showNextMeal) return _mealFor(_today);
     final tomorrow = _today.add(const Duration(days: 1));
     for (final meal in _result?.meals ?? const <Meal>[]) {
@@ -146,9 +144,6 @@ class _MealScreenState extends State<MealScreen> {
     }
     return null;
   }
-
-  DateTime _mainMealDate(Meal? meal) =>
-      _selectedMealDate ?? meal?.date ?? _today;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +157,6 @@ class _MealScreenState extends State<MealScreen> {
     }
     final result = _result;
     final mainMeal = _mainMeal();
-    final mainMealDate = _mainMealDate(mainMeal);
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -181,38 +175,24 @@ class _MealScreenState extends State<MealScreen> {
           else if (result?.hasError == true)
             _MealErrorCard(onRetry: _loadMeals)
           else ...[
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.02, 0),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              ),
-              child: _MainMealCard(
-                key: ValueKey(mainMealDate),
-                meal: mainMeal,
-                title: _mainTitle(mainMeal, mainMealDate),
-                emptyMessage: _emptyMealMessage(mainMealDate),
-              ),
-            ),
+            _MainMealCard(meal: mainMeal, title: _mainTitle(mainMeal)),
             const SizedBox(height: AppSpacing.section),
             const Text('앞으로 3일', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 14),
-            _MealDateSelector(
+            _MealAccordion(
               dates: List.generate(
                 3,
-                (index) => _today.add(Duration(days: index)),
+                (index) => _today.add(Duration(days: index + 1)),
               ),
-              selectedDate: mainMealDate,
+              expandedDate: _expandedMealDate,
               mealFor: _mealFor,
-              onSelected: (date) => setState(() => _selectedMealDate = date),
+              onToggle: (date) => setState(() {
+                _expandedMealDate =
+                    _expandedMealDate != null &&
+                        _sameDate(_expandedMealDate!, date)
+                    ? null
+                    : date;
+              }),
             ),
             const SizedBox(height: AppSpacing.section),
             _MealHistoryActionCard(
@@ -224,35 +204,20 @@ class _MealScreenState extends State<MealScreen> {
     );
   }
 
-  String _mainTitle(Meal? meal, DateTime displayedDate) {
-    if (_selectedMealDate != null) {
-      if (_sameDate(displayedDate, _today)) return '오늘의 급식';
-      final tomorrow = _today.add(const Duration(days: 1));
-      if (_sameDate(displayedDate, tomorrow)) return '내일의 급식';
-      return '${displayedDate.month}/${displayedDate.day} 급식';
-    }
+  String _mainTitle(Meal? meal) {
     if (!_showNextMeal) return '오늘의 급식';
     if (meal == null) return '다음 급식';
     final tomorrow = _today.add(const Duration(days: 1));
     if (_sameDate(meal.date, tomorrow)) return '내일의 급식';
     return '다음 급식 · ${meal.date.month}/${meal.date.day}';
   }
-
-  String _emptyMealMessage(DateTime displayedDate) =>
-      _sameDate(displayedDate, _today) ? '오늘은 급식이 없어요.' : '이날은 급식이 없어요.';
 }
 
 class _MainMealCard extends StatelessWidget {
-  const _MainMealCard({
-    required this.meal,
-    required this.title,
-    required this.emptyMessage,
-    super.key,
-  });
+  const _MainMealCard({required this.meal, required this.title});
 
   final Meal? meal;
   final String title;
-  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +242,9 @@ class _MainMealCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Center(child: Text(emptyMessage, style: AppTextStyles.body)),
+        child: const Center(
+          child: Text('오늘은 급식이 없어요.', style: AppTextStyles.body),
+        ),
       );
     }
     return Container(
@@ -344,85 +311,72 @@ class _MainMealCard extends StatelessWidget {
   }
 }
 
-class _MealDateSelector extends StatelessWidget {
-  const _MealDateSelector({
+class _MealAccordion extends StatelessWidget {
+  const _MealAccordion({
     required this.dates,
-    required this.selectedDate,
+    required this.expandedDate,
     required this.mealFor,
-    required this.onSelected,
+    required this.onToggle,
   });
 
   final List<DateTime> dates;
-  final DateTime selectedDate;
+  final DateTime? expandedDate;
   final Meal? Function(DateTime) mealFor;
-  final ValueChanged<DateTime> onSelected;
+  final ValueChanged<DateTime> onToggle;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var index = 0; index < dates.length; index++) ...[
-          Expanded(
-            child: _MealDateChoice(
-              date: dates[index],
-              dayOffset: index,
-              meal: mealFor(dates[index]),
-              selected: _sameDate(dates[index], selectedDate),
-              onTap: () => onSelected(dates[index]),
-            ),
-          ),
-          if (index < dates.length - 1) const SizedBox(width: 8),
-        ],
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (var index = 0; index < dates.length; index++) ...[
+        _MealAccordionDay(
+          date: dates[index],
+          meal: mealFor(dates[index]),
+          expanded:
+              expandedDate != null && _sameDate(expandedDate!, dates[index]),
+          onTap: () => onToggle(dates[index]),
+        ),
+        if (index < dates.length - 1) const SizedBox(height: 10),
       ],
-    );
-  }
+    ],
+  );
 }
 
-class _MealDateChoice extends StatelessWidget {
-  const _MealDateChoice({
+class _MealAccordionDay extends StatelessWidget {
+  const _MealAccordionDay({
     required this.date,
-    required this.dayOffset,
     required this.meal,
-    required this.selected,
+    required this.expanded,
     required this.onTap,
   });
 
   final DateTime date;
-  final int dayOffset;
   final Meal? meal;
-  final bool selected;
+  final bool expanded;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final label = switch (dayOffset) {
-      0 => '오늘',
-      1 => '내일',
-      2 => '모레',
-      _ => '${date.month}/${date.day}',
-    };
+    final borderRadius = BorderRadius.circular(AppSpacing.controlRadius);
     return Semantics(
       button: true,
-      selected: selected,
-      label: '$label 급식 선택',
+      expanded: expanded,
+      label: '${_dateLabel(date)} 급식 ${expanded ? '접기' : '펼치기'}',
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+        borderRadius: borderRadius,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+          borderRadius: borderRadius,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
-            constraints: const BoxConstraints(minHeight: 84),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             decoration: BoxDecoration(
-              color: selected ? AppColors.skyPale : AppColors.surface,
-              borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+              color: expanded ? AppColors.skyPale : AppColors.surface,
+              borderRadius: borderRadius,
               border: Border.all(
-                color: selected ? AppColors.sky : AppColors.cardBorder,
+                color: expanded ? AppColors.sky : AppColors.cardBorder,
               ),
-              boxShadow: selected
+              boxShadow: expanded
                   ? const [
                       BoxShadow(
                         color: AppColors.cardShadow,
@@ -433,25 +387,86 @@ class _MealDateChoice extends StatelessWidget {
                   : null,
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  label,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 14,
-                    color: selected ? AppColors.skyDark : AppColors.ink,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 60),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.medium,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _dateLabel(date),
+                            style: AppTextStyles.body.copyWith(
+                              color: expanded
+                                  ? AppColors.skyDark
+                                  : AppColors.ink,
+                            ),
+                          ),
+                        ),
+                        AnimatedRotation(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          turns: expanded ? 0.5 : 0,
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: expanded
+                                ? AppColors.skyDark
+                                : AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text('${date.month}/${date.day}', style: AppTextStyles.caption),
-                const SizedBox(height: 4),
-                Text(
-                  meal == null ? '급식 없음' : _summary(meal!.menus),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.caption.copyWith(
-                    color: selected ? AppColors.skyDark : AppColors.muted,
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 160),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                    child: expanded
+                        ? Padding(
+                            key: ValueKey(date),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: meal == null
+                                  ? const Text(
+                                      '이날은 급식이 없어요.',
+                                      style: AppTextStyles.caption,
+                                    )
+                                  : Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Divider(color: AppColors.sky),
+                                        const SizedBox(height: 8),
+                                        ...meal!.menus.map(
+                                          (menu) => Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 6,
+                                            ),
+                                            child: Text(
+                                              '• ${_readableMenu(menu)}',
+                                              style: AppTextStyles.body,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('meal-accordion-closed'),
+                            width: double.infinity,
+                          ),
                   ),
                 ),
               ],
@@ -684,12 +699,6 @@ class _MealErrorCard extends StatelessWidget {
       ],
     ),
   );
-}
-
-String _summary(List<String> menus) {
-  final readable = menus.map(_readableMenu).toList(growable: false);
-  if (readable.length <= 2) return readable.join(' · ');
-  return '${readable.take(2).join(' · ')} 외 ${readable.length - 2}개';
 }
 
 String _readableMenu(String menu) =>

@@ -83,7 +83,7 @@ void main() {
 
     final pageView = find.byType(PageView);
     final controller = tester.widget<PageView>(pageView).controller!;
-    await tester.fling(pageView, const Offset(-420, 0), 1200);
+    await tester.fling(pageView, const Offset(-420, 0), 5000);
     await tester.pumpAndSettle();
     expect(find.text('오늘의 급식'), findsOneWidget);
     expect(controller.page, closeTo(2, 0.01));

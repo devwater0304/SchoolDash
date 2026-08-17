@@ -490,6 +490,8 @@ DateTime _dateOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
 class _TimetableWheel extends StatelessWidget {
+  static const _magnification = 1.035;
+
   const _TimetableWheel({
     required this.classes,
     required this.controller,
@@ -510,75 +512,81 @@ class _TimetableWheel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => SizedBox(
-      width: constraints.maxWidth,
-      height: 292,
-      child: Column(
-        children: [
-          _TimetableMoveButton(
-            key: const ValueKey('timetable-previous-button'),
-            icon: Icons.keyboard_arrow_up_rounded,
-            label: '이전 교시 보기',
-            enabled: selectedIndex > 0,
-            onTap: () => onMove(-1),
-          ),
-          Expanded(
-            child: ClipRect(
-              child: ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black,
-                    Colors.black,
-                    Colors.transparent,
-                  ],
-                  stops: [0, 0.13, 0.87, 1],
-                ).createShader(bounds),
-                blendMode: BlendMode.dstIn,
-                child: ListWheelScrollView.useDelegate(
-                  controller: controller,
-                  itemExtent: 82,
-                  physics: const NeverScrollableScrollPhysics(),
-                  perspective: 0.001,
-                  diameterRatio: 2.4,
-                  useMagnifier: true,
-                  magnification: 1.035,
-                  overAndUnderCenterOpacity: 0.48,
-                  onSelectedItemChanged: onSelectedItemChanged,
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    childCount: classes.length,
-                    builder: (context, index) {
-                      final schedule = classes[index];
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: TimetableTile(
-                            schedule: schedule,
-                            status: schoolTimeService.classStatusFor(
+    builder: (context, constraints) {
+      final magnifierInset =
+          (constraints.maxWidth * (_magnification - 1) / 2) + 2;
+      return SizedBox(
+        width: constraints.maxWidth,
+        height: 292,
+        child: Column(
+          children: [
+            _TimetableMoveButton(
+              key: const ValueKey('timetable-previous-button'),
+              icon: Icons.keyboard_arrow_up_rounded,
+              label: '이전 교시 보기',
+              enabled: selectedIndex > 0,
+              onTap: () => onMove(-1),
+            ),
+            Expanded(
+              child: ClipRect(
+                child: ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black,
+                      Colors.black,
+                      Colors.transparent,
+                    ],
+                    stops: [0, 0.13, 0.87, 1],
+                  ).createShader(bounds),
+                  blendMode: BlendMode.dstIn,
+                  child: ListWheelScrollView.useDelegate(
+                    controller: controller,
+                    itemExtent: 82,
+                    physics: const NeverScrollableScrollPhysics(),
+                    perspective: 0.001,
+                    diameterRatio: 2.4,
+                    useMagnifier: true,
+                    magnification: _magnification,
+                    overAndUnderCenterOpacity: 0.48,
+                    onSelectedItemChanged: onSelectedItemChanged,
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: classes.length,
+                      builder: (context, index) {
+                        final schedule = classes[index];
+                        return Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: magnifierInset,
+                            ),
+                            child: TimetableTile(
                               schedule: schedule,
-                              now: now,
+                              status: schoolTimeService.classStatusFor(
+                                schedule: schedule,
+                                now: now,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          _TimetableMoveButton(
-            key: const ValueKey('timetable-next-button'),
-            icon: Icons.keyboard_arrow_down_rounded,
-            label: '다음 교시 보기',
-            enabled: selectedIndex < classes.length - 1,
-            onTap: () => onMove(1),
-          ),
-        ],
-      ),
-    ),
+            _TimetableMoveButton(
+              key: const ValueKey('timetable-next-button'),
+              icon: Icons.keyboard_arrow_down_rounded,
+              label: '다음 교시 보기',
+              enabled: selectedIndex < classes.length - 1,
+              onTap: () => onMove(1),
+            ),
+          ],
+        ),
+      );
+    },
   );
 }
 

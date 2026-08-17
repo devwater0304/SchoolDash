@@ -97,6 +97,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
     return Scaffold(
       body: PageView(
         controller: _pageController,
+        physics: const _QuickPageScrollPhysics(),
         onPageChanged: (index) => setState(() => _selectedIndex = index),
         children: [
           _KeepAlivePage(
@@ -135,6 +136,27 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
       ),
     );
   }
+}
+
+class _QuickPageScrollPhysics extends PageScrollPhysics {
+  const _QuickPageScrollPhysics({super.parent});
+
+  @override
+  _QuickPageScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      _QuickPageScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    final cappedVelocity = velocity.clamp(-650.0, 650.0).toDouble();
+    return super.createBallisticSimulation(position, cappedVelocity);
+  }
+
+  @override
+  SpringDescription get spring =>
+      const SpringDescription(mass: 0.55, stiffness: 360, damping: 32);
 }
 
 class _KeepAlivePage extends StatefulWidget {
