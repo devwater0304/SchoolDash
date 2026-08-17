@@ -217,8 +217,13 @@ class _MainMealCard extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 210),
         padding: const EdgeInsets.all(AppSpacing.section),
         decoration: BoxDecoration(
-          color: AppColors.skyPale,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.skyPale, AppColors.skySoft],
+          ),
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          border: Border.all(color: AppColors.skyPale),
         ),
         child: const Center(
           child: Text('오늘은 급식이 없어요.', style: AppTextStyles.body),
@@ -228,8 +233,13 @@ class _MainMealCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.skyPale,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.skyPale, AppColors.skySoft],
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.skyPale),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,6 +251,8 @@ class _MainMealCard extends StatelessWidget {
           if (currentMeal.menus.length >= 5) ...[
             Text(
               _readableMenu(currentMeal.menus[4]),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppTextStyles.cardTitle,
             ),
             const Padding(
@@ -477,6 +489,7 @@ class _MealHistoryDay extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSpacing.medium),
     decoration: BoxDecoration(
+      color: AppColors.surfaceSoft,
       border: Border.all(color: AppColors.line),
       borderRadius: BorderRadius.circular(18),
     ),

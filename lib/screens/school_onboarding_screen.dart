@@ -322,14 +322,6 @@ class _SchoolStep extends StatelessWidget {
                 : null,
             filled: true,
             fillColor: AppColors.skySoft,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.line),
-            ),
           ),
         ),
         const SizedBox(height: AppSpacing.large),
@@ -418,14 +410,6 @@ class _ClassInfoStep extends StatelessWidget {
         minimum: const EdgeInsets.fromLTRB(24, 10, 24, 16),
         child: FilledButton(
           onPressed: canSave && !isSaving ? onSave : null,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.sky,
-            disabledBackgroundColor: AppColors.line,
-            minimumSize: const Size.fromHeight(56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-          ),
           child: isSaving
               ? const SizedBox(
                   width: 22,
@@ -487,36 +471,9 @@ class _ClassInfoStep extends StatelessWidget {
           const SizedBox(height: AppSpacing.medium),
           const Text('몇 반인가요?', style: AppTextStyles.sectionTitle),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int>(
-            initialValue: selectedClassNumber,
-            isExpanded: true,
-            hint: const Text('반을 선택하세요'),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppColors.skySoft,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.line),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.line),
-              ),
-            ),
-            items: List.generate(
-              20,
-              (index) => DropdownMenuItem(
-                value: index + 1,
-                child: Text('${index + 1}반'),
-              ),
-            ),
-            onChanged: (classNumber) {
-              if (classNumber != null) onClassSelected(classNumber);
-            },
+          _ClassPicker(
+            selectedClassNumber: selectedClassNumber,
+            onSelected: onClassSelected,
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: AppSpacing.medium),
@@ -527,6 +484,147 @@ class _ClassInfoStep extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ClassPicker extends StatelessWidget {
+  const _ClassPicker({
+    required this.selectedClassNumber,
+    required this.onSelected,
+  });
+
+  final int? selectedClassNumber;
+  final ValueChanged<int> onSelected;
+
+  Future<void> _showOptions(BuildContext context) async {
+    final selection = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: AppColors.surface,
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.82,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('반을 선택하세요', style: AppTextStyles.sectionTitle),
+                const SizedBox(height: 6),
+                const Text(
+                  '현재 반을 선택하면 바로 저장할 수 있어요.',
+                  style: AppTextStyles.caption,
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.45,
+                    children: List.generate(20, (index) {
+                      final classNumber = index + 1;
+                      final selected = classNumber == selectedClassNumber;
+                      return Material(
+                        color: selected
+                            ? AppColors.skyPale
+                            : AppColors.surfaceSoft,
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.smallRadius,
+                        ),
+                        child: InkWell(
+                          onTap: () => Navigator.of(context).pop(classNumber),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.smallRadius,
+                          ),
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.smallRadius,
+                              ),
+                              border: Border.all(
+                                color: selected
+                                    ? AppColors.sky
+                                    : AppColors.line,
+                              ),
+                            ),
+                            child: Text(
+                              '$classNumber반',
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 14,
+                                color: selected
+                                    ? AppColors.skyDark
+                                    : AppColors.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (selection != null) onSelected(selection);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = selectedClassNumber == null
+        ? '반을 선택하세요'
+        : '$selectedClassNumber반';
+    return Semantics(
+      button: true,
+      label: '반 선택',
+      child: Material(
+        color: AppColors.skySoft,
+        borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+        child: InkWell(
+          onTap: () => _showOptions(context),
+          borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+          child: Container(
+            height: AppSpacing.controlHeight,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+              border: Border.all(
+                color: selectedClassNumber == null
+                    ? AppColors.line
+                    : AppColors.sky,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.groups_rounded,
+                  color: AppColors.skyDark,
+                  size: 21,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppTextStyles.body.copyWith(
+                      color: selectedClassNumber == null
+                          ? AppColors.muted
+                          : AppColors.ink,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.unfold_more_rounded, color: AppColors.skyDark),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

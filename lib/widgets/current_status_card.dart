@@ -19,8 +19,13 @@ class CurrentStatusCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.skyPale,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.skyPale, AppColors.skySoft],
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.skyPale),
       ),
       child: Row(
         children: [
@@ -38,7 +43,7 @@ class CurrentStatusCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(copy.eyebrow, style: AppTextStyles.caption),
+                Text(copy.eyebrow, style: AppTextStyles.overline),
                 const SizedBox(height: 2),
                 Text(copy.title, style: AppTextStyles.cardTitle),
                 const SizedBox(height: 7),
@@ -50,11 +55,15 @@ class CurrentStatusCard extends StatelessWidget {
                       color: AppColors.skyDark,
                     ),
                     const SizedBox(width: 5),
-                    Text(
-                      copy.detail,
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.skyDark,
-                        fontWeight: FontWeight.w700,
+                    Flexible(
+                      child: Text(
+                        copy.detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.skyDark,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],

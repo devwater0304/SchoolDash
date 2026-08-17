@@ -186,8 +186,9 @@ class _WeekControls extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.skyPale,
+        color: AppColors.skySoft,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.skyPale),
       ),
       child: Row(
         children: [
@@ -438,6 +439,8 @@ class _SubjectCell extends StatelessWidget {
       child: Text(
         subject ?? '-',
         textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: subject == null
             ? AppTextStyles.caption
             : AppTextStyles.body.copyWith(

@@ -54,4 +54,11 @@ abstract final class AppTextStyles {
     fontSize: 13,
     fontWeight: FontWeight.w600,
   );
+
+  static const overline = TextStyle(
+    color: AppColors.skyDark,
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.2,
+  );
 }

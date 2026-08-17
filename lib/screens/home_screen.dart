@@ -417,7 +417,7 @@ class _SchoolBreakTimetableState extends StatelessWidget {
             Text(
               eventName ?? '시간표가 없는 날',
               textAlign: TextAlign.center,
-              style: AppTextStyles.appTitle,
+              style: AppTextStyles.sectionTitle,
             ),
             const SizedBox(height: 6),
             Text(

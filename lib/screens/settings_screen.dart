@@ -4,6 +4,7 @@ import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
 import '../repositories/school_search_repository.dart';
 import '../services/app_clock.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_date_picker.dart';
@@ -72,8 +73,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('설정')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            AppSpacing.medium,
+            AppSpacing.page,
+            AppSpacing.large,
+          ),
           children: [
+            _ProfileSummary(profile: profile),
+            const SizedBox(height: AppSpacing.section),
+            const Text('내 정보', style: AppTextStyles.sectionTitle),
+            const SizedBox(height: 12),
             _SettingsTile(
               icon: Icons.school_outlined,
               title: '내 학교',
@@ -87,6 +97,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: _dateLabel(widget.dateController),
               onTap: () => showAppDatePicker(context, widget.dateController),
             ),
+            const SizedBox(height: AppSpacing.section),
+            const Text('앱', style: AppTextStyles.sectionTitle),
+            const SizedBox(height: 12),
             const _SettingsTile(
               icon: Icons.info_outline_rounded,
               title: '앱 정보',
@@ -105,6 +118,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
+class _ProfileSummary extends StatelessWidget {
+  const _ProfileSummary({required this.profile});
+
+  final SchoolProfile profile;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [AppColors.skyPale, AppColors.skySoft],
+      ),
+      borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+      border: Border.all(color: AppColors.skyPale),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.school_rounded, color: AppColors.skyDark),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('내 SchoolDash', style: AppTextStyles.overline),
+              const SizedBox(height: 3),
+              Text(
+                profile.schoolName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.cardTitle,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${profile.grade}학년 ${profile.classNumber}반',
+                style: AppTextStyles.caption.copyWith(color: AppColors.skyDark),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.icon,
@@ -119,14 +186,53 @@ class _SettingsTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 4),
-      leading: Icon(icon),
-      title: Text(title, style: AppTextStyles.body),
-      subtitle: Text(subtitle, style: AppTextStyles.caption),
-      trailing: onTap == null ? null : const Icon(Icons.chevron_right_rounded),
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+    child: InkWell(
       onTap: onTap,
-    );
-  }
+      borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.medium,
+          vertical: 15,
+        ),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.line),
+          borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.skySoft,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: AppColors.skyDark, size: 21),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTextStyles.body),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+          ],
+        ),
+      ),
+    ),
+  );
 }

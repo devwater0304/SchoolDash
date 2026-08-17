@@ -24,8 +24,13 @@ class HomeMealCard extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 170),
       padding: const EdgeInsets.all(AppSpacing.section),
       decoration: BoxDecoration(
-        color: AppColors.skyPale,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.skyPale, AppColors.skySoft],
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.skyPale),
       ),
       child: currentMeal == null
           ? Center(

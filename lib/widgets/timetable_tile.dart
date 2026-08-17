@@ -29,6 +29,15 @@ class TimetableTile extends StatelessWidget {
         color: isCurrent ? AppColors.skySoft : AppColors.surface,
         border: Border.all(color: isCurrent ? AppColors.sky : AppColors.line),
         borderRadius: BorderRadius.circular(18),
+        boxShadow: isCurrent
+            ? const [
+                BoxShadow(
+                  color: Color(0x1F4DABF7),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : null,
       ),
       child: Row(
         children: [
@@ -56,6 +65,8 @@ class TimetableTile extends StatelessWidget {
               children: [
                 Text(
                   schedule.subject,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.body.copyWith(
                     color: foreground,
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
@@ -65,6 +76,8 @@ class TimetableTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   '${schedule.time}  ·  ${schedule.teacher}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.caption.copyWith(color: subtitle),
                 ),
               ],
