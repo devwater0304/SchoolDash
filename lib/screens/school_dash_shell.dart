@@ -43,6 +43,7 @@ class SchoolDashShell extends StatefulWidget {
 class _SchoolDashShellState extends State<SchoolDashShell> {
   var _selectedIndex = 1;
   late final PageController _pageController;
+  int? _dragStartIndex;
 
   @override
   void initState() {
@@ -95,33 +96,36 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             isActive: _selectedIndex == 2,
           );
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const _QuickPageScrollPhysics(),
-        onPageChanged: (index) => setState(() => _selectedIndex = index),
-        children: [
-          _KeepAlivePage(
-            child: WeeklyTimetableScreen(
-              profile: widget.profile,
-              timetableLoadService: widget.timetableLoadService,
-              clock: widget.clock,
-              dateController: widget.dateController,
-              isActive: _selectedIndex == 0,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: _limitPageDrag,
+        child: PageView(
+          controller: _pageController,
+          physics: const _QuickPageScrollPhysics(),
+          onPageChanged: (index) => setState(() => _selectedIndex = index),
+          children: [
+            _KeepAlivePage(
+              child: WeeklyTimetableScreen(
+                profile: widget.profile,
+                timetableLoadService: widget.timetableLoadService,
+                clock: widget.clock,
+                dateController: widget.dateController,
+                isActive: _selectedIndex == 0,
+              ),
             ),
-          ),
-          _KeepAlivePage(
-            child: HomeScreen(
-              profile: widget.profile,
-              timetableLoadService: widget.timetableLoadService,
-              clock: widget.clock,
-              dateController: widget.dateController,
-              mealLoadService: widget.mealLoadService,
-              isActive: _selectedIndex == 1,
-              onProfileTap: () => _openSettings(context),
+            _KeepAlivePage(
+              child: HomeScreen(
+                profile: widget.profile,
+                timetableLoadService: widget.timetableLoadService,
+                clock: widget.clock,
+                dateController: widget.dateController,
+                mealLoadService: widget.mealLoadService,
+                isActive: _selectedIndex == 1,
+                onProfileTap: () => _openSettings(context),
+              ),
             ),
-          ),
-          _KeepAlivePage(child: mealPage),
-        ],
+            _KeepAlivePage(child: mealPage),
+          ],
+        ),
       ),
       bottomNavigationBar: AppBottomNavigation(
         selectedIndex: _selectedIndex,
@@ -135,6 +139,35 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
         },
       ),
     );
+  }
+
+  bool _limitPageDrag(ScrollNotification notification) {
+    if (notification.depth != 0) return false;
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      _dragStartIndex = _selectedIndex;
+      return false;
+    }
+    if (notification is ScrollEndNotification) {
+      _dragStartIndex = null;
+      return false;
+    }
+    if (notification is! ScrollUpdateNotification ||
+        notification.dragDetails == null ||
+        _dragStartIndex == null ||
+        !_pageController.hasClients) {
+      return false;
+    }
+
+    final page = _pageController.page;
+    if (page == null) return false;
+    final minPage = (_dragStartIndex! - 1).clamp(0, 2).toDouble();
+    final maxPage = (_dragStartIndex! + 1).clamp(0, 2).toDouble();
+    final constrainedPage = page.clamp(minPage, maxPage);
+    if (constrainedPage != page) {
+      _pageController.jumpToPage(constrainedPage.round());
+    }
+    return false;
   }
 }
 
@@ -150,13 +183,32 @@ class _QuickPageScrollPhysics extends PageScrollPhysics {
     ScrollMetrics position,
     double velocity,
   ) {
-    final cappedVelocity = velocity.clamp(-650.0, 650.0).toDouble();
-    return super.createBallisticSimulation(position, cappedVelocity);
+    if ((velocity <= 0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0 && position.pixels >= position.maxScrollExtent)) {
+      return super.createBallisticSimulation(position, 0);
+    }
+    final page = position.pixels / position.viewportDimension;
+    final targetPage = page
+        .round()
+        .clamp(
+          0,
+          (position.maxScrollExtent / position.viewportDimension).round(),
+        )
+        .toDouble();
+    final targetPixels = targetPage * position.viewportDimension;
+    if (targetPixels == position.pixels) return null;
+    return ScrollSpringSimulation(
+      spring,
+      position.pixels,
+      targetPixels,
+      0,
+      tolerance: toleranceFor(position),
+    );
   }
 
   @override
   SpringDescription get spring =>
-      const SpringDescription(mass: 0.55, stiffness: 360, damping: 32);
+      const SpringDescription(mass: 0.45, stiffness: 460, damping: 38);
 }
 
 class _KeepAlivePage extends StatefulWidget {

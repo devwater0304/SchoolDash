@@ -13,14 +13,25 @@ class TimetableMergeService {
     final timeByPeriod = {
       for (final schedule in localTimeTemplate) schedule.period: schedule,
     };
-    final classes = <ClassSchedule>[];
-
+    final subjectByPeriod = <int, String>{};
     for (final periodSubject in periodSubjects) {
-      final localTime = timeByPeriod[periodSubject.period];
+      final existingSubject = subjectByPeriod[periodSubject.period];
+      if (existingSubject != null && existingSubject != periodSubject.subject) {
+        throw const FormatException(
+          'NEIS returned conflicting subjects for the same period.',
+        );
+      }
+      subjectByPeriod[periodSubject.period] = periodSubject.subject;
+    }
+
+    final classes = <ClassSchedule>[];
+    for (final entry in subjectByPeriod.entries) {
+      final period = entry.key;
+      final localTime = timeByPeriod[period];
       classes.add(
         ClassSchedule(
-          period: periodSubject.period,
-          subject: periodSubject.subject,
+          period: period,
+          subject: entry.value,
           teacher: '',
           startMinute: localTime?.startMinute,
           endMinute: localTime?.endMinute,

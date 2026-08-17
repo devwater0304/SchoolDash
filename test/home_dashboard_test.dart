@@ -174,11 +174,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('1교시 시작까지 20분'), findsOneWidget);
+    expect(find.byType(ListWheelScrollView), findsNothing);
+    expect(find.text('수학'), findsWidgets);
+    expect(find.text('음악'), findsOneWidget);
 
     controller.selectDateTime(DateTime(2026, 6, 15, 12, 10));
     await tester.pumpAndSettle();
 
     expect(find.text('점심시간까지 10분'), findsOneWidget);
+    expect(find.byType(ListWheelScrollView), findsOneWidget);
     final meal = find.text('오늘의 급식 🍚');
     final timetable = find.text('오늘의 시간표');
     expect(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
@@ -100,11 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppSpacing.section),
             const Text('앱', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 12),
-            const _SettingsTile(
-              icon: Icons.info_outline_rounded,
-              title: '앱 정보',
-              subtitle: 'SchoolDash · 버전 1.0.0',
-            ),
+            const _AppInfoTile(),
           ],
         ),
       ),
@@ -117,6 +114,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return '테스트 시간 · ${selected.year}. ${selected.month}. ${selected.day}. '
         '${selected.hour.toString().padLeft(2, '0')}:${selected.minute.toString().padLeft(2, '0')}';
   }
+}
+
+class _AppInfoTile extends StatelessWidget {
+  const _AppInfoTile();
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<PackageInfo>(
+    future: PackageInfo.fromPlatform(),
+    builder: (context, snapshot) => _SettingsTile(
+      icon: Icons.info_outline_rounded,
+      title: '앱 정보',
+      subtitle: snapshot.hasData
+          ? 'SchoolDash · 버전 ${snapshot.data!.version}'
+          : 'SchoolDash · 버전 정보 확인 중',
+    ),
+  );
 }
 
 class _ProfileSummary extends StatelessWidget {

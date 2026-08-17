@@ -22,4 +22,32 @@ void main() {
     expect(classes[1].endMinute, 10 * 60 + 30);
     expect(classes[2].time, '14:20 – 15:05');
   });
+
+  test('collapses duplicate NEIS rows for the same date and period', () {
+    final classes = service.merge(
+      periodSubjects: [
+        PeriodSubject(date: DateTime(2026, 6, 16), period: 1, subject: '국어'),
+        PeriodSubject(date: DateTime(2026, 6, 16), period: 1, subject: '국어'),
+        PeriodSubject(date: DateTime(2026, 6, 16), period: 2, subject: '수학'),
+        PeriodSubject(date: DateTime(2026, 6, 16), period: 2, subject: '수학'),
+      ],
+      localTimeTemplate: sampleClassSchedule,
+    );
+
+    expect(classes.map((item) => item.period), [1, 2]);
+    expect(classes.map((item) => item.subject), ['국어', '수학']);
+  });
+
+  test('rejects conflicting subjects for one NEIS period', () {
+    expect(
+      () => service.merge(
+        periodSubjects: [
+          PeriodSubject(date: DateTime(2026, 6, 16), period: 1, subject: '국어'),
+          PeriodSubject(date: DateTime(2026, 6, 16), period: 1, subject: '수학'),
+        ],
+        localTimeTemplate: sampleClassSchedule,
+      ),
+      throwsFormatException,
+    );
+  });
 }

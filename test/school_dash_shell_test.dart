@@ -92,6 +92,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.page, closeTo(1, 0.01));
   });
+
+  testWidgets('does not skip an adjacent tab during a strong swipe', (
+    tester,
+  ) async {
+    final repository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchoolDashShell(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: repository,
+            fallbackRepository: repository,
+          ),
+          mealLoadService: MealLoadService(repository: _TestMealRepository()),
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('시간표'));
+    await tester.pumpAndSettle();
+    final pageView = find.byType(PageView);
+    final controller = tester.widget<PageView>(pageView).controller!;
+
+    await tester.fling(pageView, const Offset(-900, 0), 9000);
+    await tester.pumpAndSettle();
+
+    expect(controller.page, closeTo(1, 0.01));
+    expect(find.text('SchoolDash'), findsOneWidget);
+  });
 }
 
 const _profile = SchoolProfile(

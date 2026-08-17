@@ -90,6 +90,39 @@ void main() {
     );
   });
 
+  test('normalizes repeated NEIS rows for one date and period', () async {
+    final repository = repositoryFor(
+      MockClient(
+        (_) async => _jsonResponse({
+          'misTimetable': [
+            {
+              'head': [
+                {
+                  'RESULT': {'CODE': 'INFO-000', 'MESSAGE': '정상'},
+                },
+              ],
+            },
+            {
+              'row': [
+                {'ALL_TI_YMD': '20260616', 'PERIO': '1', 'ITRT_CNTNT': '국어'},
+                {'ALL_TI_YMD': '20260616', 'PERIO': '1', 'ITRT_CNTNT': '국어'},
+                {'ALL_TI_YMD': '20260616', 'PERIO': '2', 'ITRT_CNTNT': '수학'},
+                {'ALL_TI_YMD': '20260616', 'PERIO': '2', 'ITRT_CNTNT': '수학'},
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+
+    final timetable = await repository.getTimetable(
+      profile: profile,
+      date: DateTime(2026, 6, 16),
+    );
+
+    expect(timetable?.classes.map((item) => item.period), [1, 2]);
+  });
+
   test('returns null when NEIS reports no timetable for the date', () async {
     final repository = repositoryFor(
       MockClient(

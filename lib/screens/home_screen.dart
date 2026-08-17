@@ -234,6 +234,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final mealFirst = _selectedMeal(schoolStatus);
     final mealTitle = _mealTitle(schoolStatus, mealFirst);
     final showMealFirst = situation.showsMealFirst;
+    final showFullTimetable =
+        schoolStatus.type == SchoolStatusType.beforeClasses;
 
     return SafeArea(
       child: Column(
@@ -305,15 +307,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     else
                       _TimetableEmptyState(schoolDay: result?.schoolDay)
                   else
-                    _TimetableWheel(
-                      classes: classes,
-                      controller: _timetableScrollController,
-                      selectedIndex: _selectedIndexFor(classes),
-                      onMove: _moveTimetableBy,
-                      onSelectedItemChanged: _onTimetableIndexChanged,
-                      schoolTimeService: _schoolTimeService,
-                      now: _now,
-                    ),
+                    showFullTimetable
+                        ? _TodayTimetableOverview(classes: classes)
+                        : _TimetableWheel(
+                            classes: classes,
+                            controller: _timetableScrollController,
+                            selectedIndex: _selectedIndexFor(classes),
+                            onMove: _moveTimetableBy,
+                            onSelectedItemChanged: _onTimetableIndexChanged,
+                            schoolTimeService: _schoolTimeService,
+                            now: _now,
+                          ),
                   if (!showMealFirst && widget.mealLoadService != null) ...[
                     const SizedBox(height: AppSpacing.section),
                     HomeMealCard(
@@ -442,6 +446,66 @@ class _NextSchoolDay {
 
   final DateTime date;
   final List<ClassSchedule> classes;
+}
+
+class _TodayTimetableOverview extends StatelessWidget {
+  const _TodayTimetableOverview({required this.classes});
+
+  final List<ClassSchedule> classes;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      border: Border.all(color: AppColors.cardBorder),
+      borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+      boxShadow: const [
+        BoxShadow(
+          color: AppColors.cardShadow,
+          blurRadius: 18,
+          offset: Offset(0, 7),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        for (var index = 0; index < classes.length; index++) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.medium,
+              vertical: 8,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    '${classes[index].period}교시',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.skyDark,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    classes[index].subject,
+                    style: AppTextStyles.body,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(classes[index].time, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
+          if (index < classes.length - 1)
+            const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
+      ],
+    ),
+  );
 }
 
 class _NextSchoolDayCard extends StatelessWidget {
