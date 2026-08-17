@@ -50,6 +50,7 @@ void main() {
 
     expect(find.text('7교시'), findsOneWidget);
     expect(find.text('진로'), findsWidgets);
+    expect(find.byType(SingleChildScrollView), findsNothing);
   });
 }
 

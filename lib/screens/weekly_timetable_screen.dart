@@ -235,40 +235,38 @@ class _WeeklyGrid extends StatelessWidget {
     if (_periods.isEmpty) {
       return const _WeeklyMessage(message: '이번 주 시간표가 없어요.');
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        width: 82 + dates.length * 108,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.line),
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const SizedBox(width: 80, height: 58),
-                ...dates.map(
-                  (date) => _DayHeader(
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.line),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const SizedBox(width: 48, height: 58),
+              ...dates.map(
+                (date) => Expanded(
+                  child: _DayHeader(
                     date: date,
                     highlighted: _sameDate(date, today),
                   ),
                 ),
-              ],
-            ),
-            ..._periods.map(
-              (period) => _PeriodRow(
-                period: period,
-                dates: dates,
-                results: results,
-                today: today,
-                now: now,
-                schoolTimeService: schoolTimeService,
               ),
+            ],
+          ),
+          ..._periods.map(
+            (period) => _PeriodRow(
+              period: period,
+              dates: dates,
+              results: results,
+              today: today,
+              now: now,
+              schoolTimeService: schoolTimeService,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -352,7 +350,6 @@ class _DayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     const labels = ['월', '화', '수', '목', '금', '토', '일'];
     return Container(
-      width: 108,
       height: 58,
       alignment: Alignment.center,
       decoration: BoxDecoration(
@@ -397,8 +394,8 @@ class _PeriodRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 80,
-          height: 74,
+          width: 48,
+          constraints: const BoxConstraints(minHeight: 74),
           alignment: Alignment.center,
           color: AppColors.skyPale,
           child: Text('$period교시', style: AppTextStyles.caption),
@@ -410,9 +407,11 @@ class _PeriodRow extends StatelessWidget {
               _sameDate(date, today) &&
               schoolTimeService.classStatusFor(schedule: schedule, now: now) ==
                   ClassStatus.current;
-          return _SubjectCell(
-            subject: schedule?.subject,
-            highlighted: isCurrent,
+          return Expanded(
+            child: _SubjectCell(
+              subject: schedule?.subject,
+              highlighted: isCurrent,
+            ),
           );
         }),
       ],
@@ -429,23 +428,23 @@ class _SubjectCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 108,
-      height: 74,
+      constraints: const BoxConstraints(minHeight: 74),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: highlighted ? AppColors.skySoft : AppColors.surface,
         border: const Border(left: BorderSide(color: AppColors.line)),
       ),
-      child: Text(
-        subject ?? '-',
-        textAlign: TextAlign.center,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: subject == null
-            ? AppTextStyles.caption
-            : AppTextStyles.body.copyWith(
-                color: highlighted ? AppColors.skyDark : AppColors.ink,
-              ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+        child: Text(
+          subject ?? '-',
+          textAlign: TextAlign.center,
+          style: subject == null
+              ? AppTextStyles.caption
+              : AppTextStyles.body.copyWith(
+                  color: highlighted ? AppColors.skyDark : AppColors.ink,
+                ),
+        ),
       ),
     );
   }

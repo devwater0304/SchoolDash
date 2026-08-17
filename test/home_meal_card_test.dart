@@ -35,4 +35,28 @@ void main() {
     expect(find.text('오늘은 급식이 없어요.'), findsOneWidget);
     expect(find.byType(Container), findsWidgets);
   });
+
+  testWidgets('hides allergy number labels only in the Home meal card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeMealCard(
+          title: '오늘의 급식',
+          hasError: false,
+          meal: Meal(
+            date: DateTime(2026, 6, 15),
+            type: MealType.lunch,
+            rawMenuText: '테스트',
+            menus: const ['비빔밥 (1.2.3)', '계란국(3)'],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('• 비빔밥'), findsOneWidget);
+    expect(find.text('• 계란국'), findsOneWidget);
+    expect(find.textContaining('(1.2.3)'), findsNothing);
+    expect(find.textContaining('(3)'), findsNothing);
+  });
 }

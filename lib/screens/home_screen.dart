@@ -54,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
   MealLoadResult? _mealResult;
   final _timetableScrollController = FixedExtentScrollController();
   int? _focusedPeriod;
+  int? _selectedTimetableIndex;
+  var _hasManuallyMovedTimetable = false;
 
   @override
   void initState() {
@@ -77,11 +79,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _timetableResult = null;
       _mealResult = null;
       _focusedPeriod = null;
+      _selectedTimetableIndex = null;
+      _hasManuallyMovedTimetable = false;
       _loadDayData(widget.clock.now());
     }
-    if (widget.isActive && !oldWidget.isActive) {
-      _focusCurrentClass(force: true);
-    }
+    if (widget.isActive && !oldWidget.isActive) _focusCurrentClass();
   }
 
   void _onAppDateChanged() {
@@ -92,6 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _timetableResult = null;
       _mealResult = null;
       _focusedPeriod = null;
+      _selectedTimetableIndex = null;
+      _hasManuallyMovedTimetable = false;
     });
     _loadDayData(now);
   }
@@ -104,6 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _now = now);
     if (_dateOnly(now) != previousDate) {
       _focusedPeriod = null;
+      _selectedTimetableIndex = null;
+      _hasManuallyMovedTimetable = false;
       _loadDayData(now);
     } else {
       _focusCurrentClass();
@@ -252,52 +258,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   else
                     _TimetableEmptyState(schoolDay: result?.schoolDay)
                 else
-                  SizedBox(
-                    height: 292,
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black,
-                          Colors.black,
-                          Colors.transparent,
-                        ],
-                        stops: [0, 0.13, 0.87, 1],
-                      ).createShader(bounds),
-                      blendMode: BlendMode.dstIn,
-                      child: ListWheelScrollView.useDelegate(
-                        controller: _timetableScrollController,
-                        itemExtent: 82,
-                        physics: const FixedExtentScrollPhysics(),
-                        perspective: 0.001,
-                        diameterRatio: 2.4,
-                        useMagnifier: true,
-                        magnification: 1.035,
-                        overAndUnderCenterOpacity: 0.48,
-                        childDelegate: ListWheelChildBuilderDelegate(
-                          childCount: classes.length,
-                          builder: (context, index) {
-                            final schedule = classes[index];
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                ),
-                                child: TimetableTile(
-                                  schedule: schedule,
-                                  status: _schoolTimeService.classStatusFor(
-                                    schedule: schedule,
-                                    now: _now,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+                  _TimetableWheel(
+                    classes: classes,
+                    controller: _timetableScrollController,
+                    selectedIndex: _selectedIndexFor(classes),
+                    onMove: _moveTimetableBy,
+                    onSelectedItemChanged: _onTimetableIndexChanged,
+                    schoolTimeService: _schoolTimeService,
+                    now: _now,
                   ),
                 if (!showMealFirst && widget.mealLoadService != null) ...[
                   const SizedBox(height: AppSpacing.section),
@@ -344,6 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _focusCurrentClass({bool force = false}) {
+    if (_hasManuallyMovedTimetable && !force) return;
     final classes =
         _timetableResult?.timetable?.classes ?? const <ClassSchedule>[];
     ClassSchedule? current;
@@ -364,6 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
           (schedule) => schedule.period == current!.period,
         );
         if (index < 0) return;
+        if (mounted) setState(() => _selectedTimetableIndex = index);
         _timetableScrollController.animateToItem(
           index,
           duration: const Duration(milliseconds: 360),
@@ -371,6 +341,42 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
+  }
+
+  int _selectedIndexFor(List<ClassSchedule> classes) {
+    final selectedIndex = _selectedTimetableIndex;
+    if (selectedIndex != null && selectedIndex < classes.length) {
+      return selectedIndex;
+    }
+    final currentIndex = classes.indexWhere(
+      (schedule) =>
+          _schoolTimeService.classStatusFor(schedule: schedule, now: _now) ==
+          ClassStatus.current,
+    );
+    return currentIndex < 0 ? 0 : currentIndex;
+  }
+
+  void _onTimetableIndexChanged(int index) {
+    if (!mounted || _selectedTimetableIndex == index) return;
+    setState(() => _selectedTimetableIndex = index);
+  }
+
+  void _moveTimetableBy(int delta) {
+    final classes =
+        _timetableResult?.timetable?.classes ?? const <ClassSchedule>[];
+    if (classes.isEmpty) return;
+    final currentIndex = _selectedIndexFor(classes);
+    final targetIndex = (currentIndex + delta).clamp(0, classes.length - 1);
+    if (targetIndex == currentIndex) return;
+    setState(() {
+      _selectedTimetableIndex = targetIndex;
+      _hasManuallyMovedTimetable = true;
+    });
+    _timetableScrollController.animateToItem(
+      targetIndex,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _showDatePicker() async {
@@ -482,6 +488,133 @@ class _TimetableEmptyState extends StatelessWidget {
 
 DateTime _dateOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
+
+class _TimetableWheel extends StatelessWidget {
+  const _TimetableWheel({
+    required this.classes,
+    required this.controller,
+    required this.selectedIndex,
+    required this.onMove,
+    required this.onSelectedItemChanged,
+    required this.schoolTimeService,
+    required this.now,
+  });
+
+  final List<ClassSchedule> classes;
+  final FixedExtentScrollController controller;
+  final int selectedIndex;
+  final ValueChanged<int> onMove;
+  final ValueChanged<int> onSelectedItemChanged;
+  final SchoolTimeService schoolTimeService;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 292,
+    child: Column(
+      children: [
+        _TimetableMoveButton(
+          key: const ValueKey('timetable-previous-button'),
+          icon: Icons.keyboard_arrow_up_rounded,
+          label: '이전 교시 보기',
+          enabled: selectedIndex > 0,
+          onTap: () => onMove(-1),
+        ),
+        Expanded(
+          child: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black,
+                Colors.black,
+                Colors.transparent,
+              ],
+              stops: [0, 0.13, 0.87, 1],
+            ).createShader(bounds),
+            blendMode: BlendMode.dstIn,
+            child: ListWheelScrollView.useDelegate(
+              controller: controller,
+              itemExtent: 82,
+              physics: const NeverScrollableScrollPhysics(),
+              perspective: 0.001,
+              diameterRatio: 2.4,
+              useMagnifier: true,
+              magnification: 1.035,
+              overAndUnderCenterOpacity: 0.48,
+              onSelectedItemChanged: onSelectedItemChanged,
+              childDelegate: ListWheelChildBuilderDelegate(
+                childCount: classes.length,
+                builder: (context, index) {
+                  final schedule = classes[index];
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: TimetableTile(
+                        schedule: schedule,
+                        status: schoolTimeService.classStatusFor(
+                          schedule: schedule,
+                          now: now,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+        _TimetableMoveButton(
+          key: const ValueKey('timetable-next-button'),
+          icon: Icons.keyboard_arrow_down_rounded,
+          label: '다음 교시 보기',
+          enabled: selectedIndex < classes.length - 1,
+          onTap: () => onMove(1),
+        ),
+      ],
+    ),
+  );
+}
+
+class _TimetableMoveButton extends StatelessWidget {
+  const _TimetableMoveButton({
+    required super.key,
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: enabled,
+    label: label,
+    child: Material(
+      color: enabled ? AppColors.skySoft : AppColors.surfaceSoft,
+      borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
+        child: SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: Icon(
+            icon,
+            color: enabled ? AppColors.skyDark : AppColors.completed,
+            size: 25,
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 class _Header extends StatelessWidget {
   const _Header({

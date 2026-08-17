@@ -35,6 +35,17 @@ void main() {
 
     expect(find.text('2교시 체육'), findsOneWidget);
     expect(find.byType(ListWheelScrollView), findsOneWidget);
+    expect(
+      tester
+          .widget<ListWheelScrollView>(find.byType(ListWheelScrollView))
+          .physics,
+      isA<NeverScrollableScrollPhysics>(),
+    );
+    expect(
+      find.byKey(const ValueKey('timetable-previous-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('timetable-next-button')), findsOneWidget);
     expect(find.text('오늘의 급식 🍚'), findsOneWidget);
   });
 
@@ -57,6 +68,39 @@ void main() {
 
     expect(find.text('오늘 수업 끝!'), findsOneWidget);
     expect(find.text('내일의 급식 🍚'), findsOneWidget);
+  });
+
+  testWidgets('moves the timetable one period only through its controls', (
+    tester,
+  ) async {
+    final timetableRepository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: timetableRepository,
+            fallbackRepository: timetableRepository,
+          ),
+          clock: _FixedClock(DateTime(2026, 6, 15, 10)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final wheel = find.byType(ListWheelScrollView);
+    final controller =
+        tester.widget<ListWheelScrollView>(wheel).controller
+            as FixedExtentScrollController;
+    final initialIndex = controller.selectedItem;
+
+    await tester.drag(wheel, const Offset(0, -120));
+    await tester.pumpAndSettle();
+    expect(controller.selectedItem, initialIndex);
+
+    await tester.tap(find.byKey(const ValueKey('timetable-next-button')));
+    await tester.pumpAndSettle();
+    expect(controller.selectedItem, initialIndex + 1);
   });
 
   testWidgets('reloads dashboard data after the school profile changes', (

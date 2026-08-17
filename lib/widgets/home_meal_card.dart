@@ -45,7 +45,10 @@ class HomeMealCard extends StatelessWidget {
                 Text('$title 🍚', style: AppTextStyles.sectionTitle),
                 const SizedBox(height: AppSpacing.medium),
                 if (currentMeal.menus.length >= 5) ...[
-                  Text(currentMeal.menus[4], style: AppTextStyles.cardTitle),
+                  Text(
+                    _menuWithoutAllergyInfo(currentMeal.menus[4]),
+                    style: AppTextStyles.cardTitle,
+                  ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14),
                     child: Divider(color: AppColors.sky),
@@ -56,7 +59,7 @@ class HomeMealCard extends StatelessWidget {
                         (entry) => Padding(
                           padding: const EdgeInsets.only(bottom: 7),
                           child: Text(
-                            '• ${entry.$2}',
+                            '• ${_menuWithoutAllergyInfo(entry.$2)}',
                             style: AppTextStyles.body,
                           ),
                         ),
@@ -65,7 +68,10 @@ class HomeMealCard extends StatelessWidget {
                   ...currentMeal.menus.map(
                     (menu) => Padding(
                       padding: const EdgeInsets.only(bottom: 7),
-                      child: Text('• $menu', style: AppTextStyles.body),
+                      child: Text(
+                        '• ${_menuWithoutAllergyInfo(menu)}',
+                        style: AppTextStyles.body,
+                      ),
                     ),
                   ),
                 ],
@@ -74,3 +80,6 @@ class HomeMealCard extends StatelessWidget {
     );
   }
 }
+
+String _menuWithoutAllergyInfo(String menu) =>
+    menu.replaceAll(RegExp(r'\s*\([0-9.]+\)'), '').trim();
