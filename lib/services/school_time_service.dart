@@ -100,4 +100,16 @@ class SchoolTimeService {
     }
     return ClassStatus.upcoming;
   }
+
+  double classProgressFor({
+    required ClassSchedule schedule,
+    required DateTime now,
+  }) {
+    if (!schedule.hasBellTime) return 0;
+    final nowSeconds = now.hour * 60 * 60 + now.minute * 60 + now.second;
+    final startSeconds = schedule.startMinute! * 60;
+    final durationSeconds = (schedule.endMinute! - schedule.startMinute!) * 60;
+    if (durationSeconds <= 0) return 0;
+    return ((nowSeconds - startSeconds) / durationSeconds).clamp(0.0, 1.0);
+  }
 }

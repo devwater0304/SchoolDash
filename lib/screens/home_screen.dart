@@ -741,6 +741,10 @@ class _TimetableWheel extends StatelessWidget {
                                 schedule: schedule,
                                 now: now,
                               ),
+                              progress: schoolTimeService.classProgressFor(
+                                schedule: schedule,
+                                now: now,
+                              ),
                             ),
                           ),
                         );

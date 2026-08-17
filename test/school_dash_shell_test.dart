@@ -123,6 +123,36 @@ void main() {
     expect(controller.page, closeTo(1, 0.01));
     expect(find.text('SchoolDash'), findsOneWidget);
   });
+
+  testWidgets('uses distance instead of velocity for page changes', (
+    tester,
+  ) async {
+    final repository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchoolDashShell(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: repository,
+            fallbackRepository: repository,
+          ),
+          mealLoadService: MealLoadService(repository: _TestMealRepository()),
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final pageView = find.byType(PageView);
+    final controller = tester.widget<PageView>(pageView).controller!;
+
+    await tester.fling(pageView, const Offset(-100, 0), 9000);
+    await tester.pumpAndSettle();
+    expect(controller.page, closeTo(1, 0.01));
+
+    await tester.drag(pageView, const Offset(-260, 0));
+    await tester.pumpAndSettle();
+    expect(controller.page, closeTo(2, 0.01));
+  });
 }
 
 const _profile = SchoolProfile(

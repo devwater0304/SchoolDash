@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/school_profile.dart';
@@ -41,19 +42,36 @@ class SchoolDashShell extends StatefulWidget {
 }
 
 class _SchoolDashShellState extends State<SchoolDashShell> {
+  static const _swipeThreshold = 0.25;
+  static const _lastTabIndex = 2;
+
   var _selectedIndex = 1;
   late final PageController _pageController;
+  late final ValueNotifier<int?> _dragStartPage;
+  late final ValueNotifier<double?> _dragDistancePixels;
+  late final _QuickPageScrollPhysics _pagePhysics;
   int? _dragStartIndex;
+  double? _pointerStartX;
+  double _viewportWidth = 0;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    _dragStartPage = ValueNotifier(null);
+    _dragDistancePixels = ValueNotifier(null);
+    _pagePhysics = _QuickPageScrollPhysics(
+      dragStartPage: _dragStartPage,
+      dragDistancePixels: _dragDistancePixels,
+      threshold: _swipeThreshold,
+    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _dragStartPage.dispose();
+    _dragDistancePixels.dispose();
     super.dispose();
   }
 
@@ -84,6 +102,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
 
   @override
   Widget build(BuildContext context) {
+    _viewportWidth = MediaQuery.sizeOf(context).width;
     final mealLoadService = widget.mealLoadService;
     final mealPage = mealLoadService == null
         ? const _MealPlaceholder()
@@ -96,35 +115,40 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
             isActive: _selectedIndex == 2,
           );
     return Scaffold(
-      body: NotificationListener<ScrollNotification>(
-        onNotification: _limitPageDrag,
-        child: PageView(
-          controller: _pageController,
-          physics: const _QuickPageScrollPhysics(),
-          onPageChanged: (index) => setState(() => _selectedIndex = index),
-          children: [
-            _KeepAlivePage(
-              child: WeeklyTimetableScreen(
-                profile: widget.profile,
-                timetableLoadService: widget.timetableLoadService,
-                clock: widget.clock,
-                dateController: widget.dateController,
-                isActive: _selectedIndex == 0,
+      body: Listener(
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _limitPageDrag,
+          child: PageView(
+            controller: _pageController,
+            physics: _pagePhysics,
+            onPageChanged: (index) => setState(() => _selectedIndex = index),
+            children: [
+              _KeepAlivePage(
+                child: WeeklyTimetableScreen(
+                  profile: widget.profile,
+                  timetableLoadService: widget.timetableLoadService,
+                  clock: widget.clock,
+                  dateController: widget.dateController,
+                  isActive: _selectedIndex == 0,
+                ),
               ),
-            ),
-            _KeepAlivePage(
-              child: HomeScreen(
-                profile: widget.profile,
-                timetableLoadService: widget.timetableLoadService,
-                clock: widget.clock,
-                dateController: widget.dateController,
-                mealLoadService: widget.mealLoadService,
-                isActive: _selectedIndex == 1,
-                onProfileTap: () => _openSettings(context),
+              _KeepAlivePage(
+                child: HomeScreen(
+                  profile: widget.profile,
+                  timetableLoadService: widget.timetableLoadService,
+                  clock: widget.clock,
+                  dateController: widget.dateController,
+                  mealLoadService: widget.mealLoadService,
+                  isActive: _selectedIndex == 1,
+                  onProfileTap: () => _openSettings(context),
+                ),
               ),
-            ),
-            _KeepAlivePage(child: mealPage),
-          ],
+              _KeepAlivePage(child: mealPage),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: AppBottomNavigation(
@@ -146,10 +170,10 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
     if (notification is ScrollStartNotification &&
         notification.dragDetails != null) {
       _dragStartIndex = _selectedIndex;
+      _dragStartPage.value = _selectedIndex;
       return false;
     }
     if (notification is ScrollEndNotification) {
-      _dragStartIndex = null;
       return false;
     }
     if (notification is! ScrollUpdateNotification ||
@@ -161,22 +185,69 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
 
     final page = _pageController.page;
     if (page == null) return false;
-    final minPage = (_dragStartIndex! - 1).clamp(0, 2).toDouble();
-    final maxPage = (_dragStartIndex! + 1).clamp(0, 2).toDouble();
+    final minPage = (_dragStartIndex! - 1).clamp(0, _lastTabIndex).toDouble();
+    final maxPage = (_dragStartIndex! + 1).clamp(0, _lastTabIndex).toDouble();
     final constrainedPage = page.clamp(minPage, maxPage);
     if (constrainedPage != page) {
       _pageController.jumpToPage(constrainedPage.round());
     }
     return false;
   }
+
+  void _onPointerDown(PointerDownEvent event) {
+    _pointerStartX = event.position.dx;
+    _dragStartIndex = _selectedIndex;
+    _dragStartPage.value = _selectedIndex;
+    _dragDistancePixels.value = 0;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final startX = _pointerStartX;
+    if (startX == null) return;
+    _dragDistancePixels.value = startX - event.position.dx;
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    final startPage = _dragStartIndex;
+    final distance = _dragDistancePixels.value;
+    if (startPage == null || distance == null || _viewportWidth <= 0) return;
+    final targetPage =
+        (distance.abs() >= _viewportWidth * _swipeThreshold
+                ? startPage + (distance.isNegative ? -1 : 1)
+                : startPage)
+            .clamp(0, _lastTabIndex)
+            .toInt();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pageController.hasClients) return;
+      _pageController.animateToPage(
+        targetPage,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
 }
 
 class _QuickPageScrollPhysics extends PageScrollPhysics {
-  const _QuickPageScrollPhysics({super.parent});
+  const _QuickPageScrollPhysics({
+    required this.dragStartPage,
+    required this.dragDistancePixels,
+    required this.threshold,
+    super.parent,
+  });
+
+  final ValueListenable<int?> dragStartPage;
+  final ValueListenable<double?> dragDistancePixels;
+  final double threshold;
 
   @override
   _QuickPageScrollPhysics applyTo(ScrollPhysics? ancestor) =>
-      _QuickPageScrollPhysics(parent: buildParent(ancestor));
+      _QuickPageScrollPhysics(
+        dragStartPage: dragStartPage,
+        dragDistancePixels: dragDistancePixels,
+        threshold: threshold,
+        parent: buildParent(ancestor),
+      );
 
   @override
   Simulation? createBallisticSimulation(
@@ -188,13 +259,21 @@ class _QuickPageScrollPhysics extends PageScrollPhysics {
       return super.createBallisticSimulation(position, 0);
     }
     final page = position.pixels / position.viewportDimension;
-    final targetPage = page
-        .round()
-        .clamp(
-          0,
-          (position.maxScrollExtent / position.viewportDimension).round(),
-        )
-        .toDouble();
+    final startPage = dragStartPage.value?.toDouble() ?? page.roundToDouble();
+    final displacement = dragDistancePixels.value == null
+        ? page - startPage
+        : dragDistancePixels.value! / position.viewportDimension;
+    final targetPage =
+        (displacement >= threshold
+                ? startPage + 1
+                : displacement <= -threshold
+                ? startPage - 1
+                : startPage)
+            .clamp(
+              0,
+              (position.maxScrollExtent / position.viewportDimension).round(),
+            )
+            .toDouble();
     final targetPixels = targetPage * position.viewportDimension;
     if (targetPixels == position.pixels) return null;
     return ScrollSpringSimulation(

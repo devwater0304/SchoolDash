@@ -76,4 +76,30 @@ void main() {
     expect(sampleClassSchedule[5].time, '14:20 – 15:05');
     expect(sampleClassSchedule[6].time, '15:15 – 16:00');
   });
+
+  test('calculates class progress from the supplied app DateTime', () {
+    final firstClass = sampleClassSchedule.first;
+
+    expect(
+      service.classProgressFor(
+        schedule: firstClass,
+        now: DateTime(2026, 8, 14, 8, 50),
+      ),
+      0,
+    );
+    expect(
+      service.classProgressFor(
+        schedule: firstClass,
+        now: DateTime(2026, 8, 14, 9, 1, 15),
+      ),
+      closeTo(0.25, 0.001),
+    );
+    expect(
+      service.classProgressFor(
+        schedule: firstClass,
+        now: DateTime(2026, 8, 14, 9, 34),
+      ),
+      closeTo(44 / 45, 0.001),
+    );
+  });
 }
