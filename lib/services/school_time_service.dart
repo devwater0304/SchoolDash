@@ -7,9 +7,11 @@ import '../models/school_time_status.dart';
 class SchoolTimeService {
   const SchoolTimeService({
     this.lunchBreakThreshold = const Duration(minutes: 40),
+    this.lunchPriorityThreshold = const Duration(minutes: 15),
   });
 
   final Duration lunchBreakThreshold;
+  final Duration lunchPriorityThreshold;
 
   SchoolTimeStatus calculateStatus({
     required DateTime now,
@@ -39,10 +41,23 @@ class SchoolTimeService {
       final currentClass = classes[index];
       if (currentMinute >= currentClass.startMinute! &&
           currentMinute < currentClass.endMinute!) {
+        final hasNextClass = index < classes.length - 1;
+        final nextClass = hasNextClass ? classes[index + 1] : null;
+        final gapToNext = nextClass == null
+            ? 0
+            : nextClass.startMinute! - currentClass.endMinute!;
+        final remaining = Duration(
+          minutes: currentClass.endMinute! - currentMinute,
+        );
         return SchoolTimeStatus(
-          type: SchoolStatusType.duringClass,
+          type:
+              gapToNext >= lunchBreakThreshold.inMinutes &&
+                  remaining <= lunchPriorityThreshold
+              ? SchoolStatusType.lunchSoon
+              : SchoolStatusType.duringClass,
           currentClass: currentClass,
-          remaining: Duration(minutes: currentClass.endMinute! - currentMinute),
+          nextClass: nextClass,
+          remaining: remaining,
         );
       }
 
@@ -54,7 +69,10 @@ class SchoolTimeService {
 
         return SchoolTimeStatus(
           type: isLunchBreak
-              ? SchoolStatusType.lunchTime
+              ? (Duration(minutes: nextClass.startMinute! - currentMinute) <=
+                        lunchPriorityThreshold
+                    ? SchoolStatusType.afterLunchBreak
+                    : SchoolStatusType.lunchTime)
               : SchoolStatusType.breakTime,
           nextClass: nextClass,
           remaining: Duration(minutes: nextClass.startMinute! - currentMinute),

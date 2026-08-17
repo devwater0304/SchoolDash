@@ -106,8 +106,8 @@ class _StatusCardCopy {
       case SchoolStatusType.beforeClasses:
         return _StatusCardCopy(
           eyebrow: '수업 전',
-          title: '${nextClass!.period}교시까지 ${minutes.toString()}분',
-          detail: '${nextClass.subject} · ${nextClass.time} 시작',
+          title: '${nextClass!.period}교시 시작까지 ${minutes.toString()}분',
+          detail: '${nextClass.subject} · ${nextClass.time}',
           icon: Icons.wb_sunny_outlined,
         );
       case SchoolStatusType.duringClass:
@@ -117,26 +117,42 @@ class _StatusCardCopy {
           detail: '종료까지 ${minutes.toString()}분',
           icon: Icons.play_circle_outline_rounded,
         );
+      case SchoolStatusType.lunchSoon:
+        return _StatusCardCopy(
+          eyebrow: '점심 전',
+          title: '점심시간까지 ${minutes.toString()}분',
+          detail: '${currentClass!.period}교시 ${currentClass.subject} 수업 중',
+          icon: Icons.restaurant_outlined,
+        );
       case SchoolStatusType.breakTime:
         return _StatusCardCopy(
           eyebrow: '쉬는 시간',
           title: '쉬는 시간',
-          detail: '${nextClass!.period}교시까지 ${minutes.toString()}분',
+          detail:
+              '${nextClass!.period}교시 ${nextClass.subject} 시작까지 ${minutes.toString()}분',
           icon: Icons.directions_walk_rounded,
         );
       case SchoolStatusType.lunchTime:
         return _StatusCardCopy(
           eyebrow: '점심시간',
-          title: '점심시간',
+          title: '점심시간이에요',
           detail: '${nextClass!.period}교시까지 ${minutes.toString()}분',
           icon: Icons.restaurant_rounded,
+        );
+      case SchoolStatusType.afterLunchBreak:
+        return _StatusCardCopy(
+          eyebrow: '다음 수업 준비',
+          title:
+              '${nextClass!.period}교시 ${nextClass.subject} 시작까지 ${minutes.toString()}분',
+          detail: '점심시간이 곧 끝나요',
+          icon: Icons.school_outlined,
         );
       case SchoolStatusType.afterClasses:
         return const _StatusCardCopy(
           eyebrow: '수업 종료',
-          title: '오늘 수업 끝!',
-          detail: '내일 급식을 확인하세요',
-          icon: Icons.celebration_outlined,
+          title: '오늘 수업은 끝났어요',
+          detail: '다음 수업일을 확인해 보세요',
+          icon: Icons.check_circle_outline_rounded,
         );
       case SchoolStatusType.noClasses:
         if (schoolDay?.hasClasses == true) {
@@ -147,11 +163,14 @@ class _StatusCardCopy {
             icon: Icons.event_note_outlined,
           );
         }
-        final reason = schoolDay?.event?.name ?? _dayTypeLabel(schoolDay?.type);
+        final eventName = schoolDay?.event?.name;
+        final reason = eventName ?? _dayTypeLabel(schoolDay?.type);
         return _StatusCardCopy(
-          eyebrow: '시간표 없음',
-          title: '오늘은 쉬는 날!',
-          detail: reason ?? '편안한 하루 보내세요',
+          eyebrow: '학교 일정',
+          title: eventName == null
+              ? '오늘은 ${reason ?? '쉬는 날'}'
+              : '오늘은 $eventName이에요',
+          detail: reason ?? '다음 수업일을 확인해 보세요',
           icon: Icons.event_available_outlined,
         );
     }

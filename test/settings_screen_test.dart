@@ -44,9 +44,9 @@ void main() {
     await tester.tap(find.text('설정 열기'));
     await tester.pumpAndSettle();
     expect(find.text('내 학교'), findsOneWidget);
-    expect(find.text('기준 날짜'), findsOneWidget);
+    expect(find.text('기준 시간'), findsOneWidget);
     expect(find.text('앱 정보'), findsOneWidget);
-    expect(find.text('현재 날짜 사용'), findsOneWidget);
+    expect(find.text('실제 시간 사용'), findsOneWidget);
 
     await tester.tap(find.text('내 학교'));
     await tester.pumpAndSettle();

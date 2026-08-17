@@ -5,7 +5,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
-/// Opens the app-wide date QA controls used by Home and Settings.
+/// Opens the app-wide DateTime QA controls used by Home and Settings.
 Future<void> showAppDatePicker(
   BuildContext context,
   AppDateController controller,
@@ -22,21 +22,24 @@ Future<void> showAppDatePicker(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('기준 날짜', style: AppTextStyles.sectionTitle),
+            const Text('기준 시간', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 6),
-            const Text('화면에서 표시할 날짜를 선택하세요.', style: AppTextStyles.caption),
+            const Text(
+              '앱 전체에서 사용할 날짜와 시각을 선택하세요.',
+              style: AppTextStyles.caption,
+            ),
             const SizedBox(height: 20),
             _DateChoice(
               icon: Icons.today_rounded,
-              title: '현재 날짜 사용',
-              subtitle: '오늘 기준으로 정보를 표시해요',
+              title: '실제 시간 사용',
+              subtitle: '기기의 현재 날짜와 시각을 그대로 사용해요',
               onTap: () => Navigator.pop(context, true),
             ),
             const SizedBox(height: 10),
             _DateChoice(
               icon: Icons.calendar_month_rounded,
-              title: '날짜 선택',
-              subtitle: '다른 날짜의 학교생활을 미리 확인해요',
+              title: '테스트 시간 사용',
+              subtitle: '원하는 날짜와 시각의 학교생활을 확인해요',
               onTap: () => Navigator.pop(context, false),
             ),
           ],
@@ -46,7 +49,7 @@ Future<void> showAppDatePicker(
   );
   if (useCurrent == null) return;
   if (useCurrent) {
-    controller.useCurrentDate();
+    controller.useCurrentTime();
     return;
   }
   if (!context.mounted) return;
@@ -56,7 +59,21 @@ Future<void> showAppDatePicker(
     firstDate: DateTime(2020),
     lastDate: DateTime(2035),
   );
-  if (picked != null) controller.selectDate(picked);
+  if (picked == null || !context.mounted) return;
+  final pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(controller.now()),
+  );
+  if (pickedTime == null) return;
+  controller.selectDateTime(
+    DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    ),
+  );
 }
 
 class _DateChoice extends StatelessWidget {

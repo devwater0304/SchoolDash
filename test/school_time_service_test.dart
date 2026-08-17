@@ -40,6 +40,17 @@ void main() {
     expect(lunchStatus.nextClass?.period, 5);
   });
 
+  test('prioritizes lunch shortly before and after the lunch break', () {
+    final lunchSoon = statusAt(12, 5);
+    final afterLunchBreak = statusAt(13, 15);
+
+    expect(lunchSoon.type, SchoolStatusType.lunchSoon);
+    expect(lunchSoon.remaining, const Duration(minutes: 15));
+    expect(afterLunchBreak.type, SchoolStatusType.afterLunchBreak);
+    expect(afterLunchBreak.nextClass?.period, 5);
+    expect(afterLunchBreak.remaining, const Duration(minutes: 10));
+  });
+
   test('reports after classes and derives timetable item states', () {
     final status = statusAt(16, 10);
 

@@ -93,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _SettingsTile(
               icon: Icons.calendar_month_outlined,
-              title: '기준 날짜',
+              title: '기준 시간',
               subtitle: _dateLabel(widget.dateController),
               onTap: () => showAppDatePicker(context, widget.dateController),
             ),
@@ -112,9 +112,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String _dateLabel(AppDateController controller) {
-    final selected = controller.selectedDate;
-    if (selected == null) return '현재 날짜 사용';
-    return '${selected.year}. ${selected.month}. ${selected.day}.';
+    final selected = controller.selectedDateTime;
+    if (selected == null) return '실제 시간 사용';
+    return '테스트 시간 · ${selected.year}. ${selected.month}. ${selected.day}. '
+        '${selected.hour.toString().padLeft(2, '0')}:${selected.minute.toString().padLeft(2, '0')}';
   }
 }
 

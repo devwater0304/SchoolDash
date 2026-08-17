@@ -15,47 +15,60 @@ class SystemAppClock implements AppClock {
   DateTime now() => DateTime.now();
 }
 
-/// A small, app-wide clock for normal use and date-based QA.
+/// A small, app-wide clock for normal use and DateTime-based QA.
 ///
-/// When a date is selected, only the year/month/day are replaced. The actual
-/// device time remains intact so time-based features can be tested naturally.
+/// In test mode the selected value replaces both the date and time, so every
+/// feature receives one consistent reference DateTime.
 class AppDateController extends ChangeNotifier implements AppClock {
   AppDateController({DateTime Function()? currentTime})
     : _currentTime = currentTime ?? DateTime.now;
 
   final DateTime Function() _currentTime;
-  DateTime? _selectedDate;
+  DateTime? _selectedDateTime;
 
-  bool get isUsingSelectedDate => _selectedDate != null;
-  DateTime? get selectedDate => _selectedDate;
+  bool get isUsingSelectedDate => _selectedDateTime != null;
+  bool get isUsingTestTime => _selectedDateTime != null;
+  DateTime? get selectedDateTime => _selectedDateTime;
+  DateTime? get selectedDate {
+    final selected = _selectedDateTime;
+    return selected == null
+        ? null
+        : DateTime(selected.year, selected.month, selected.day);
+  }
 
   @override
   DateTime now() {
     final actual = _currentTime();
-    final selected = _selectedDate;
+    final selected = _selectedDateTime;
     if (selected == null) return actual;
-    return DateTime(
-      selected.year,
-      selected.month,
-      selected.day,
-      actual.hour,
-      actual.minute,
-      actual.second,
-      actual.millisecond,
-      actual.microsecond,
-    );
+    return selected;
   }
 
   void selectDate(DateTime date) {
-    final normalized = DateTime(date.year, date.month, date.day);
-    if (_selectedDate == normalized) return;
-    _selectedDate = normalized;
+    final current = _selectedDateTime ?? _currentTime();
+    selectDateTime(
+      DateTime(date.year, date.month, date.day, current.hour, current.minute),
+    );
+  }
+
+  void selectDateTime(DateTime dateTime) {
+    final normalized = DateTime(
+      dateTime.year,
+      dateTime.month,
+      dateTime.day,
+      dateTime.hour,
+      dateTime.minute,
+    );
+    if (_selectedDateTime == normalized) return;
+    _selectedDateTime = normalized;
     notifyListeners();
   }
 
-  void useCurrentDate() {
-    if (_selectedDate == null) return;
-    _selectedDate = null;
+  void useCurrentDate() => useCurrentTime();
+
+  void useCurrentTime() {
+    if (_selectedDateTime == null) return;
+    _selectedDateTime = null;
     notifyListeners();
   }
 }

@@ -3,8 +3,10 @@ import 'class_schedule.dart';
 enum SchoolStatusType {
   beforeClasses,
   duringClass,
+  lunchSoon,
   breakTime,
   lunchTime,
+  afterLunchBreak,
   afterClasses,
   noClasses,
 }

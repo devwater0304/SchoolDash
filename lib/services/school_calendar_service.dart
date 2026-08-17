@@ -33,7 +33,8 @@ class SchoolCalendarService {
     }
     SchoolEvent? blockingEvent;
     for (final event in events) {
-      if (_isNonSchoolEvent(event.type) &&
+      if (event.includes(dateOnly) &&
+          _isNonSchoolEvent(event.type) &&
           event.appliesToGrade(profile.grade)) {
         blockingEvent = event;
         break;

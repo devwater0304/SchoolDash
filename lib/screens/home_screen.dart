@@ -10,6 +10,7 @@ import '../models/school_profile.dart';
 import '../models/school_time_status.dart';
 import '../models/timetable_load_result.dart';
 import '../services/app_clock.dart';
+import '../services/home_situation_service.dart';
 import '../services/meal_load_service.dart';
 import '../services/school_time_service.dart';
 import '../services/timetable_load_service.dart';
@@ -47,6 +48,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _schoolTimeService = const SchoolTimeService();
+  final _homeSituationService = const HomeSituationService();
   late DateTime _now;
   Timer? _clockTimer;
   TimetableLoadResult? _timetableResult;
@@ -56,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _focusedPeriod;
   int? _selectedTimetableIndex;
   var _hasManuallyMovedTimetable = false;
+  _NextSchoolDay? _nextSchoolDay;
 
   @override
   void initState() {
@@ -81,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _focusedPeriod = null;
       _selectedTimetableIndex = null;
       _hasManuallyMovedTimetable = false;
+      _nextSchoolDay = null;
       _loadDayData(widget.clock.now());
     }
     if (widget.isActive && !oldWidget.isActive) _focusCurrentClass();
@@ -96,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _focusedPeriod = null;
       _selectedTimetableIndex = null;
       _hasManuallyMovedTimetable = false;
+      _nextSchoolDay = null;
     });
     _loadDayData(now);
   }
@@ -153,6 +158,43 @@ class _HomeScreenState extends State<HomeScreen> {
             : TimetableLoadStatus.nonSchoolDay,
       );
     });
+    final schoolStatus = schoolDay.hasClasses
+        ? _schoolTimeService.calculateStatus(
+            now: _now,
+            schedule: result.timetable?.classes ?? const <ClassSchedule>[],
+          )
+        : const SchoolTimeStatus(
+            type: SchoolStatusType.noClasses,
+            remaining: Duration.zero,
+          );
+    if (!schoolDay.hasClasses ||
+        schoolStatus.type == SchoolStatusType.afterClasses) {
+      unawaited(_loadNextSchoolDay(date));
+    }
+  }
+
+  Future<void> _loadNextSchoolDay(DateTime date) async {
+    final requestedDate = _dateOnly(date);
+    for (var offset = 1; offset <= 14; offset++) {
+      final candidate = requestedDate.add(Duration(days: offset));
+      final schoolDay = await widget.timetableLoadService.loadSchoolDay(
+        profile: widget.profile,
+        date: candidate,
+      );
+      if (!schoolDay.hasClasses) continue;
+      final timetable = await widget.timetableLoadService.loadDayTimetable(
+        profile: widget.profile,
+        date: candidate,
+      );
+      if (!mounted || _dateOnly(_now) != requestedDate) return;
+      setState(() {
+        _nextSchoolDay = _NextSchoolDay(
+          date: candidate,
+          classes: timetable.timetable?.classes ?? const [],
+        );
+      });
+      return;
+    }
   }
 
   Future<void> _applyMealResult(
@@ -185,11 +227,13 @@ class _HomeScreenState extends State<HomeScreen> {
             type: SchoolStatusType.noClasses,
             remaining: Duration.zero,
           );
+    final situation = _homeSituationService.resolve(
+      schoolDay: result?.schoolDay,
+      timeStatus: schoolStatus,
+    );
     final mealFirst = _selectedMeal(schoolStatus);
     final mealTitle = _mealTitle(schoolStatus, mealFirst);
-    final showMealFirst =
-        schoolStatus.type == SchoolStatusType.lunchTime ||
-        schoolStatus.type == SchoolStatusType.afterClasses;
+    final showMealFirst = situation.showsMealFirst;
 
     return SafeArea(
       child: Column(
@@ -218,62 +262,66 @@ class _HomeScreenState extends State<HomeScreen> {
                   schoolDay: result?.schoolDay,
                 ),
                 const SizedBox(height: AppSpacing.section),
-                if (showMealFirst) ...[
-                  HomeMealCard(
-                    title: mealTitle,
-                    meal: mealFirst,
-                    hasError: _mealResult?.hasError ?? false,
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
-                    if (!isVerifiedDayOff)
-                      Text(
-                        '총 ${classes.length}교시',
-                        style: AppTextStyles.caption,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                if (result?.isFallback == true) ...[
-                  Text(
-                    '최신 시간표를 불러오지 못해 임시 시간표를 보여드려요.',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.skyDark,
+                if (!situation.showsDailyDashboard)
+                  _NextSchoolDayCard(nextSchoolDay: _nextSchoolDay)
+                else ...[
+                  if (showMealFirst) ...[
+                    HomeMealCard(
+                      title: mealTitle,
+                      meal: mealFirst,
+                      hasError: _mealResult?.hasError ?? false,
                     ),
+                    const SizedBox(height: AppSpacing.section),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('오늘의 시간표', style: AppTextStyles.sectionTitle),
+                      if (!isVerifiedDayOff)
+                        Text(
+                          '총 ${classes.length}교시',
+                          style: AppTextStyles.caption,
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                ],
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (classes.isEmpty)
-                  if (isVerifiedDayOff)
-                    _SchoolBreakTimetableState(schoolDay: result!.schoolDay)
+                  const SizedBox(height: 14),
+                  if (result?.isFallback == true) ...[
+                    Text(
+                      '최신 시간표를 불러오지 못해 임시 시간표를 보여드려요.',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.skyDark,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 30),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (classes.isEmpty)
+                    if (isVerifiedDayOff)
+                      _SchoolBreakTimetableState(schoolDay: result!.schoolDay)
+                    else
+                      _TimetableEmptyState(schoolDay: result?.schoolDay)
                   else
-                    _TimetableEmptyState(schoolDay: result?.schoolDay)
-                else
-                  _TimetableWheel(
-                    classes: classes,
-                    controller: _timetableScrollController,
-                    selectedIndex: _selectedIndexFor(classes),
-                    onMove: _moveTimetableBy,
-                    onSelectedItemChanged: _onTimetableIndexChanged,
-                    schoolTimeService: _schoolTimeService,
-                    now: _now,
-                  ),
-                if (!showMealFirst && widget.mealLoadService != null) ...[
-                  const SizedBox(height: AppSpacing.section),
-                  HomeMealCard(
-                    title: mealTitle,
-                    meal: mealFirst,
-                    hasError: _mealResult?.hasError ?? false,
-                  ),
+                    _TimetableWheel(
+                      classes: classes,
+                      controller: _timetableScrollController,
+                      selectedIndex: _selectedIndexFor(classes),
+                      onMove: _moveTimetableBy,
+                      onSelectedItemChanged: _onTimetableIndexChanged,
+                      schoolTimeService: _schoolTimeService,
+                      now: _now,
+                    ),
+                  if (!showMealFirst && widget.mealLoadService != null) ...[
+                    const SizedBox(height: AppSpacing.section),
+                    HomeMealCard(
+                      title: mealTitle,
+                      meal: mealFirst,
+                      hasError: _mealResult?.hasError ?? false,
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -315,22 +363,20 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_hasManuallyMovedTimetable && !force) return;
     final classes =
         _timetableResult?.timetable?.classes ?? const <ClassSchedule>[];
-    ClassSchedule? current;
-    for (final schedule in classes) {
-      if (_schoolTimeService.classStatusFor(schedule: schedule, now: _now) ==
-          ClassStatus.current) {
-        current = schedule;
-        break;
-      }
-    }
-    if (current == null || (!force && _focusedPeriod == current.period)) {
+    final status = _schoolTimeService.calculateStatus(
+      now: _now,
+      schedule: classes,
+    );
+    final focusedClass = status.currentClass ?? status.nextClass;
+    if (focusedClass == null ||
+        (!force && _focusedPeriod == focusedClass.period)) {
       return;
     }
-    _focusedPeriod = current.period;
+    _focusedPeriod = focusedClass.period;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_timetableScrollController.hasClients && mounted) {
         final index = classes.indexWhere(
-          (schedule) => schedule.period == current!.period,
+          (schedule) => schedule.period == focusedClass.period,
         );
         if (index < 0) return;
         if (mounted) setState(() => _selectedTimetableIndex = index);
@@ -348,12 +394,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (selectedIndex != null && selectedIndex < classes.length) {
       return selectedIndex;
     }
-    final currentIndex = classes.indexWhere(
-      (schedule) =>
-          _schoolTimeService.classStatusFor(schedule: schedule, now: _now) ==
-          ClassStatus.current,
+    final status = _schoolTimeService.calculateStatus(
+      now: _now,
+      schedule: classes,
     );
-    return currentIndex < 0 ? 0 : currentIndex;
+    final focusedClass = status.currentClass ?? status.nextClass;
+    final focusedIndex = focusedClass == null
+        ? -1
+        : classes.indexWhere(
+            (schedule) => schedule.period == focusedClass.period,
+          );
+    return focusedIndex < 0 ? 0 : focusedIndex;
   }
 
   void _onTimetableIndexChanged(int index) {
@@ -383,6 +434,65 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = widget.dateController;
     if (controller == null) return;
     await showAppDatePicker(context, controller);
+  }
+}
+
+class _NextSchoolDay {
+  const _NextSchoolDay({required this.date, required this.classes});
+
+  final DateTime date;
+  final List<ClassSchedule> classes;
+}
+
+class _NextSchoolDayCard extends StatelessWidget {
+  const _NextSchoolDayCard({required this.nextSchoolDay});
+
+  final _NextSchoolDay? nextSchoolDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = nextSchoolDay;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 112),
+      padding: const EdgeInsets.all(AppSpacing.section),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: next == null
+          ? const Center(
+              child: Text('다음 수업일을 확인하고 있어요.', style: AppTextStyles.caption),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('다음 수업일', style: AppTextStyles.overline),
+                const SizedBox(height: 4),
+                Text(
+                  '${_formatToday(next.date)}에 등교해요',
+                  style: AppTextStyles.cardTitle,
+                ),
+                if (next.classes.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '1교시 ${next.classes.first.subject} · 총 ${next.classes.length}교시',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.skyDark,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+    );
   }
 }
 

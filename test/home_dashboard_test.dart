@@ -49,7 +49,7 @@ void main() {
     expect(find.text('오늘의 급식 🍚'), findsOneWidget);
   });
 
-  testWidgets('shows the next meal first after classes', (tester) async {
+  testWidgets('shows the next school day after classes', (tester) async {
     final timetableRepository = SampleSchoolRepository(events: const []);
     await tester.pumpWidget(
       MaterialApp(
@@ -66,8 +66,56 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('오늘 수업 끝!'), findsOneWidget);
-    expect(find.text('내일의 급식 🍚'), findsOneWidget);
+    expect(find.text('오늘 수업은 끝났어요'), findsOneWidget);
+    expect(find.text('다음 수업일'), findsOneWidget);
+    expect(find.text('6월 16일 화요일에 등교해요'), findsOneWidget);
+    expect(find.text('오늘의 급식 🍚'), findsNothing);
+  });
+
+  testWidgets('finds the next school day instead of assuming tomorrow', (
+    tester,
+  ) async {
+    final timetableRepository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: timetableRepository,
+            fallbackRepository: timetableRepository,
+          ),
+          clock: _FixedClock(DateTime(2026, 6, 19, 17)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('6월 22일 월요일에 등교해요'), findsOneWidget);
+  });
+
+  testWidgets('centers a school day off without daily dashboard cards', (
+    tester,
+  ) async {
+    final timetableRepository = SampleSchoolRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: timetableRepository,
+            fallbackRepository: timetableRepository,
+          ),
+          mealLoadService: MealLoadService(repository: _MealRepository()),
+          clock: _FixedClock(DateTime(2026, 8, 17, 10)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('오늘은 재량휴업일이에요'), findsOneWidget);
+    expect(find.text('다음 수업일'), findsOneWidget);
+    expect(find.text('오늘의 시간표'), findsNothing);
+    expect(find.text('오늘의 급식 🍚'), findsNothing);
   });
 
   testWidgets('moves the timetable one period only through its controls', (
@@ -101,6 +149,42 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('timetable-next-button')));
     await tester.pumpAndSettle();
     expect(controller.selectedItem, initialIndex + 1);
+  });
+
+  testWidgets('recalculates Home immediately when the QA DateTime changes', (
+    tester,
+  ) async {
+    final controller = AppDateController(
+      currentTime: () => DateTime(2026, 6, 15, 8, 30),
+    );
+    final timetableRepository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: timetableRepository,
+            fallbackRepository: timetableRepository,
+          ),
+          mealLoadService: MealLoadService(repository: _MealRepository()),
+          clock: controller,
+          dateController: controller,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1교시 시작까지 20분'), findsOneWidget);
+
+    controller.selectDateTime(DateTime(2026, 6, 15, 12, 10));
+    await tester.pumpAndSettle();
+
+    expect(find.text('점심시간까지 10분'), findsOneWidget);
+    final meal = find.text('오늘의 급식 🍚');
+    final timetable = find.text('오늘의 시간표');
+    expect(
+      tester.getTopLeft(meal).dy,
+      lessThan(tester.getTopLeft(timetable).dy),
+    );
   });
 
   testWidgets('keeps the timetable wheel within a narrow mobile viewport', (
