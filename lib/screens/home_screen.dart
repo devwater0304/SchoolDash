@@ -73,6 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
       oldWidget.dateController?.removeListener(_onAppDateChanged);
       widget.dateController?.addListener(_onAppDateChanged);
     }
+    if (oldWidget.profile != widget.profile) {
+      _timetableResult = null;
+      _mealResult = null;
+      _focusedPeriod = null;
+      _loadDayData(widget.clock.now());
+    }
     if (widget.isActive && !oldWidget.isActive) {
       _focusCurrentClass(force: true);
     }

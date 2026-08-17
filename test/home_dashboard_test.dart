@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:school_dash/data/sample_timetable.dart';
+import 'package:school_dash/models/class_schedule.dart';
+import 'package:school_dash/models/daily_timetable.dart';
 import 'package:school_dash/models/meal.dart';
+import 'package:school_dash/models/school_event.dart';
 import 'package:school_dash/models/school_profile.dart';
 import 'package:school_dash/repositories/meal_repository.dart';
+import 'package:school_dash/repositories/school_repository.dart';
 import 'package:school_dash/screens/home_screen.dart';
 import 'package:school_dash/services/app_clock.dart';
 import 'package:school_dash/services/meal_load_service.dart';
@@ -54,6 +58,47 @@ void main() {
     expect(find.text('오늘 수업 끝!'), findsOneWidget);
     expect(find.text('내일의 급식 🍚'), findsOneWidget);
   });
+
+  testWidgets('reloads dashboard data after the school profile changes', (
+    tester,
+  ) async {
+    final repository = _ProfileAwareSchoolRepository();
+    final service = TimetableLoadService(
+      primaryRepository: repository,
+      fallbackRepository: repository,
+    );
+    const secondProfile = SchoolProfile(
+      schoolName: '새학교',
+      schoolId: 'new-school',
+      region: '서울',
+      grade: 2,
+      classNumber: 3,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: _profile,
+          timetableLoadService: service,
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('테스트중학교'), findsWidgets);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: secondProfile,
+          timetableLoadService: service,
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('새학교'), findsWidgets);
+  });
 }
 
 const _profile = SchoolProfile(
@@ -84,6 +129,39 @@ class _MealRepository implements MealRepository {
       menus: const ['카레라이스'],
     ),
   ];
+}
+
+class _ProfileAwareSchoolRepository implements SchoolRepository {
+  @override
+  Future<DailyTimetable?> getTimetable({
+    required SchoolProfile profile,
+    required DateTime date,
+  }) async => DailyTimetable(
+    date: date,
+    classes: [
+      ClassSchedule(
+        period: 1,
+        subject: profile.schoolName,
+        teacher: '',
+        startMinute: 530,
+        endMinute: 575,
+      ),
+    ],
+  );
+
+  @override
+  Future<List<DailyTimetable>> getTimetables({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => const [];
+
+  @override
+  Future<List<SchoolEvent>> getSchoolEvents({
+    required SchoolProfile profile,
+    required DateTime from,
+    required DateTime to,
+  }) async => const [];
 }
 
 class _FixedClock implements AppClock {

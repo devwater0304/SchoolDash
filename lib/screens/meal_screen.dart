@@ -59,6 +59,15 @@ class _MealScreenState extends State<MealScreen> {
       oldWidget.dateController?.removeListener(_onAppDateChanged);
       widget.dateController?.addListener(_onAppDateChanged);
     }
+    if (oldWidget.profile != widget.profile) {
+      setState(() {
+        _result = null;
+        _schoolStatus = null;
+        _hasLoaded = false;
+        _showHistory = false;
+      });
+      if (widget.isActive) _loadMeals();
+    }
   }
 
   void _onAppDateChanged() {

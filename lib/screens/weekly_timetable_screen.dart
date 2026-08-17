@@ -56,6 +56,14 @@ class _WeeklyTimetableScreenState extends State<WeeklyTimetableScreen> {
       oldWidget.dateController?.removeListener(_onAppDateChanged);
       widget.dateController?.addListener(_onAppDateChanged);
     }
+    if (oldWidget.profile != widget.profile) {
+      setState(() {
+        _results = const {};
+        _hasLoaded = false;
+        _hasLoadError = false;
+      });
+      if (widget.isActive) _loadWeek();
+    }
   }
 
   void _onAppDateChanged() {
