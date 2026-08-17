@@ -51,8 +51,11 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
   late final ValueNotifier<double?> _dragDistancePixels;
   late final _QuickPageScrollPhysics _pagePhysics;
   int? _dragStartIndex;
+  int? _pointerGestureStartIndex;
   double? _pointerStartX;
   double _viewportWidth = 0;
+  var _pageGestureActive = false;
+  var _isSnapping = false;
 
   @override
   void initState() {
@@ -124,7 +127,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
           child: PageView(
             controller: _pageController,
             physics: _pagePhysics,
-            onPageChanged: (index) => setState(() => _selectedIndex = index),
+            onPageChanged: _onPageChanged,
             children: [
               _KeepAlivePage(
                 child: WeeklyTimetableScreen(
@@ -167,17 +170,22 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
 
   bool _limitPageDrag(ScrollNotification notification) {
     if (notification.depth != 0) return false;
-    if (notification is ScrollStartNotification &&
-        notification.dragDetails != null) {
-      _dragStartIndex = _selectedIndex;
-      _dragStartPage.value = _selectedIndex;
+    if (notification is ScrollStartNotification) {
+      // Touch drags are locked by Listener before PageView receives them.
+      // This branch covers trackpad/wheel scrolling, which has no pointer drag.
+      if (notification.dragDetails != null ||
+          _pointerGestureStartIndex != null) {
+        return false;
+      }
+      if (_isSnapping || _pageGestureActive) return false;
+      _beginPageGesture();
       return false;
     }
     if (notification is ScrollEndNotification) {
+      _pageGestureActive = false;
       return false;
     }
     if (notification is! ScrollUpdateNotification ||
-        notification.dragDetails == null ||
         _dragStartIndex == null ||
         !_pageController.hasClients) {
       return false;
@@ -196,8 +204,8 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
 
   void _onPointerDown(PointerDownEvent event) {
     _pointerStartX = event.position.dx;
-    _dragStartIndex = _selectedIndex;
-    _dragStartPage.value = _selectedIndex;
+    _pointerGestureStartIndex = _selectedIndex;
+    _beginPageGesture();
     _dragDistancePixels.value = 0;
   }
 
@@ -217,13 +225,50 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
                 : startPage)
             .clamp(0, _lastTabIndex)
             .toInt();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_pageController.hasClients) return;
-      _pageController.animateToPage(
+    _pageGestureActive = false;
+    _snapTo(targetPage);
+  }
+
+  void _onPageChanged(int index) {
+    final startIndex = _pointerGestureStartIndex ?? _dragStartIndex;
+    if (startIndex != null && (index - startIndex).abs() > 1) {
+      final constrainedIndex = index > startIndex
+          ? startIndex + 1
+          : startIndex - 1;
+      _pageController.jumpToPage(constrainedIndex.clamp(0, _lastTabIndex));
+      setState(() => _selectedIndex = constrainedIndex.clamp(0, _lastTabIndex));
+      return;
+    }
+    setState(() => _selectedIndex = index);
+  }
+
+  void _beginPageGesture() {
+    if (_isSnapping || _pageGestureActive) return;
+    _pageGestureActive = true;
+    _dragStartIndex = _selectedIndex;
+    _dragStartPage.value = _selectedIndex;
+    _dragDistancePixels.value = null;
+  }
+
+  void _snapTo(int targetPage) {
+    _isSnapping = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || !_pageController.hasClients) {
+        _isSnapping = false;
+        _pointerStartX = null;
+        _pointerGestureStartIndex = null;
+        return;
+      }
+      await _pageController.animateToPage(
         targetPage,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
       );
+      if (mounted) {
+        _pointerStartX = null;
+        _pointerGestureStartIndex = null;
+        _isSnapping = false;
+      }
     });
   }
 }

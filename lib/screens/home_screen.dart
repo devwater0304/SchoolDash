@@ -20,6 +20,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/app_date_picker.dart';
 import '../widgets/current_status_card.dart';
 import '../widgets/home_meal_card.dart';
+import '../widgets/subject_pictogram.dart';
 import '../widgets/timetable_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -262,6 +263,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 CurrentStatusCard(
                   status: schoolStatus,
                   schoolDay: result?.schoolDay,
+                  waterProgress: schoolStatus.currentClass == null
+                      ? 0
+                      : _schoolTimeService.classProgressFor(
+                          schedule: schoolStatus.currentClass!,
+                          now: _now,
+                        ),
                 ),
                 const SizedBox(height: AppSpacing.section),
                 if (!situation.showsDailyDashboard)
@@ -488,6 +495,8 @@ class _TodayTimetableOverview extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                SubjectPictogram(subject: classes[index].subject),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -738,10 +747,6 @@ class _TimetableWheel extends StatelessWidget {
                             child: TimetableTile(
                               schedule: schedule,
                               status: schoolTimeService.classStatusFor(
-                                schedule: schedule,
-                                now: now,
-                              ),
-                              progress: schoolTimeService.classProgressFor(
                                 schedule: schedule,
                                 now: now,
                               ),

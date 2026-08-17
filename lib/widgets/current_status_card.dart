@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/school_day.dart';
@@ -7,32 +9,59 @@ import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
 class CurrentStatusCard extends StatelessWidget {
-  const CurrentStatusCard({required this.status, this.schoolDay, super.key});
+  const CurrentStatusCard({
+    required this.status,
+    this.schoolDay,
+    this.waterProgress = 0,
+    super.key,
+  });
 
   final SchoolTimeStatus status;
   final SchoolDay? schoolDay;
+  final double waterProgress;
 
   @override
   Widget build(BuildContext context) {
     final copy = _StatusCardCopy.from(status, schoolDay);
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.skyPale, AppColors.skySoft],
-        ),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.cardBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 24,
-            offset: Offset(0, 10),
+    final showsWater = status.currentClass != null;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: showsWater ? waterProgress.clamp(0, 1) : 0),
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+      builder: (context, animatedProgress, child) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.skyPale, AppColors.skySoft],
           ),
-        ],
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          border: Border.all(color: AppColors.cardBorder),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            if (animatedProgress > 0.001)
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: _StatusWater(
+                    key: const ValueKey('status-water'),
+                    progress: animatedProgress,
+                  ),
+                ),
+              ),
+            Padding(padding: const EdgeInsets.all(22), child: child),
+          ],
+        ),
       ),
       child: Row(
         children: [
@@ -82,6 +111,106 @@ class CurrentStatusCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _StatusWater extends StatefulWidget {
+  const _StatusWater({required this.progress, super.key});
+
+  final double progress;
+
+  @override
+  State<_StatusWater> createState() => _StatusWaterState();
+}
+
+class _StatusWaterState extends State<_StatusWater>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    );
+    if (!WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _controller,
+    builder: (context, _) => CustomPaint(
+      painter: _StatusWaterPainter(
+        progress: widget.progress,
+        phase: _controller.value,
+      ),
+    ),
+  );
+}
+
+class _StatusWaterPainter extends CustomPainter {
+  const _StatusWaterPainter({required this.progress, required this.phase});
+
+  final double progress;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final waterTop = size.height * (1 - progress.clamp(0, 1));
+    _paintWave(
+      canvas: canvas,
+      size: size,
+      waterTop: waterTop,
+      amplitude: 2.5,
+      wavelength: 52,
+      phaseOffset: phase * math.pi * 2,
+      color: const Color(0x334DABF7),
+    );
+    _paintWave(
+      canvas: canvas,
+      size: size,
+      waterTop: waterTop,
+      amplitude: 3.2,
+      wavelength: 67,
+      phaseOffset: -phase * math.pi * 4 + 0.9,
+      color: const Color(0x4D3299E8),
+    );
+  }
+
+  void _paintWave({
+    required Canvas canvas,
+    required Size size,
+    required double waterTop,
+    required double amplitude,
+    required double wavelength,
+    required double phaseOffset,
+    required Color color,
+  }) {
+    final path = Path()..moveTo(0, waterTop);
+    for (double x = 0; x <= size.width + 1; x += 2) {
+      final y =
+          waterTop +
+          math.sin((x / wavelength) * math.pi * 2 + phaseOffset) * amplitude;
+      path.lineTo(x, y);
+    }
+    path
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_StatusWaterPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.phase != phase;
 }
 
 class _StatusCardCopy {

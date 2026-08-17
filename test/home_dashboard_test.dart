@@ -183,7 +183,7 @@ void main() {
 
     expect(find.text('점심시간까지 10분'), findsOneWidget);
     expect(find.byType(ListWheelScrollView), findsOneWidget);
-    expect(find.byKey(const ValueKey('class-water-4')), findsOneWidget);
+    expect(find.byKey(const ValueKey('status-water')), findsOneWidget);
     final meal = find.text('오늘의 급식 🍚');
     final timetable = find.text('오늘의 시간표');
     expect(
@@ -193,7 +193,7 @@ void main() {
 
     controller.selectDateTime(DateTime(2026, 6, 15, 12, 30));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('class-water-4')), findsNothing);
+    expect(find.byKey(const ValueKey('status-water')), findsNothing);
   });
 
   testWidgets('keeps the timetable wheel within a narrow mobile viewport', (
