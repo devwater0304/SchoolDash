@@ -103,6 +103,29 @@ void main() {
     expect(controller.selectedItem, initialIndex + 1);
   });
 
+  testWidgets('keeps the timetable wheel within a narrow mobile viewport', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final timetableRepository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: timetableRepository,
+            fallbackRepository: timetableRepository,
+          ),
+          clock: _FixedClock(DateTime(2026, 6, 15, 10)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byType(ListWheelScrollView)).width, 272);
+  });
+
   testWidgets('reloads dashboard data after the school profile changes', (
     tester,
   ) async {

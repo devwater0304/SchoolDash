@@ -48,7 +48,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('오늘의 급식'), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.text('전체 급식표 보기'), 180);
+    await tester.scrollUntilVisible(
+      find.text('전체 급식표 보기'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('전체 급식표 보기'));
     await tester.pumpAndSettle();
     expect(find.text('전체 급식표'), findsOneWidget);
@@ -56,6 +60,37 @@ void main() {
     await tester.tap(find.text('홈'));
     await tester.pumpAndSettle();
     expect(find.text('SchoolDash'), findsOneWidget);
+  });
+
+  testWidgets('keeps bottom navigation in sync with page swipes', (
+    tester,
+  ) async {
+    final repository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchoolDashShell(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: repository,
+            fallbackRepository: repository,
+          ),
+          mealLoadService: MealLoadService(repository: _TestMealRepository()),
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final pageView = find.byType(PageView);
+    final controller = tester.widget<PageView>(pageView).controller!;
+    await tester.fling(pageView, const Offset(-420, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(find.text('오늘의 급식'), findsOneWidget);
+    expect(controller.page, closeTo(2, 0.01));
+
+    await tester.fling(pageView, const Offset(420, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(controller.page, closeTo(1, 0.01));
   });
 }
 

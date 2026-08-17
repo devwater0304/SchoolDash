@@ -16,6 +16,7 @@ import 'services/app_clock.dart';
 import 'services/geolocator_device_location_service.dart';
 import 'services/meal_load_service.dart';
 import 'services/timetable_load_service.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -79,6 +80,16 @@ class SchoolDashApp extends StatelessWidget {
       title: 'SchoolDash',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      builder: (context, child) => DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
+          ),
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: AppStartGate(
         profileRepository: profileRepository,
         nearbySchoolRepository: nearbySchoolRepository,

@@ -198,10 +198,13 @@ class _WeekControls extends StatelessWidget {
             icon: const Icon(Icons.chevron_left_rounded),
           ),
           Expanded(
-            child: Text(
-              '${weekStart.month}월 ${weekStart.day}일 - ${weekEnd.month}월 ${weekEnd.day}일',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${weekStart.month}월 ${weekStart.day}일 - ${weekEnd.month}월 ${weekEnd.day}일',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body,
+              ),
             ),
           ),
           IconButton(
@@ -239,6 +242,14 @@ class _WeeklyGrid extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.line),
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        color: AppColors.surface,
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -303,11 +314,17 @@ class _WeeklyTimetableSkeleton extends StatelessWidget {
         children: [
           const Row(
             children: [
-              _SkeletonBlock(width: 72, height: 18),
+              Expanded(
+                child: _SkeletonBlock(width: double.infinity, height: 18),
+              ),
               SizedBox(width: 12),
-              _SkeletonBlock(width: 88, height: 18),
+              Expanded(
+                child: _SkeletonBlock(width: double.infinity, height: 18),
+              ),
               SizedBox(width: 12),
-              _SkeletonBlock(width: 64, height: 18),
+              Expanded(
+                child: _SkeletonBlock(width: double.infinity, height: 18),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.medium),

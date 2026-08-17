@@ -37,7 +37,13 @@ class TimetableTile extends StatelessWidget {
                   offset: Offset(0, 6),
                 ),
               ]
-            : null,
+            : const [
+                BoxShadow(
+                  color: AppColors.cardShadow,
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [

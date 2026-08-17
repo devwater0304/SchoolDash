@@ -25,7 +25,14 @@ class CurrentStatusCard extends StatelessWidget {
           colors: [AppColors.skyPale, AppColors.skySoft],
         ),
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.skyPale),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 24,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         children: [

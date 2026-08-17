@@ -15,7 +15,8 @@ void main() {
 
     expect(find.text('오늘의 급식'), findsOneWidget);
     expect(find.text('• 비빔밥'), findsOneWidget);
-    expect(find.text('내일 · 6/16'), findsOneWidget);
+    expect(find.text('내일'), findsOneWidget);
+    expect(find.text('6/16'), findsOneWidget);
   });
 
   testWidgets('moves the main meal to the next available meal after classes', (
@@ -73,6 +74,18 @@ void main() {
     expect(find.text('다섯번째 메뉴'), findsOneWidget);
     expect(find.text('• 다섯번째 메뉴'), findsNothing);
     expect(find.text('• 첫번째 메뉴'), findsOneWidget);
+  });
+
+  testWidgets('shows the selected upcoming date in the main meal card', (
+    tester,
+  ) async {
+    await _pumpMealScreen(tester, DateTime(2026, 6, 15, 9));
+
+    await tester.tap(find.text('내일'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('내일의 급식'), findsOneWidget);
+    expect(find.text('• 카레라이스'), findsOneWidget);
   });
 }
 

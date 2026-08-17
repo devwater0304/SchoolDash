@@ -11,6 +11,10 @@ abstract final class AppColors {
   static const line = Color(0xFFE7EDF3);
   static const surfaceSoft = Color(0xFFFAFCFE);
   static const surface = Color(0xFFFFFFFF);
+  static const backgroundTop = Color(0xFFF8FCFF);
+  static const backgroundBottom = Color(0xFFF1F8FE);
+  static const cardBorder = Color(0xD9FFFFFF);
+  static const cardShadow = Color(0x14345470);
   static const completed = Color(0xFFB2BFCA);
   static const danger = Color(0xFFD9485F);
 }

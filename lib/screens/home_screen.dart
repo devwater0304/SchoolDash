@@ -509,70 +509,75 @@ class _TimetableWheel extends StatelessWidget {
   final DateTime now;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 292,
-    child: Column(
-      children: [
-        _TimetableMoveButton(
-          key: const ValueKey('timetable-previous-button'),
-          icon: Icons.keyboard_arrow_up_rounded,
-          label: '이전 교시 보기',
-          enabled: selectedIndex > 0,
-          onTap: () => onMove(-1),
-        ),
-        Expanded(
-          child: ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black,
-                Colors.black,
-                Colors.transparent,
-              ],
-              stops: [0, 0.13, 0.87, 1],
-            ).createShader(bounds),
-            blendMode: BlendMode.dstIn,
-            child: ListWheelScrollView.useDelegate(
-              controller: controller,
-              itemExtent: 82,
-              physics: const NeverScrollableScrollPhysics(),
-              perspective: 0.001,
-              diameterRatio: 2.4,
-              useMagnifier: true,
-              magnification: 1.035,
-              overAndUnderCenterOpacity: 0.48,
-              onSelectedItemChanged: onSelectedItemChanged,
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: classes.length,
-                builder: (context, index) {
-                  final schedule = classes[index];
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: TimetableTile(
-                        schedule: schedule,
-                        status: schoolTimeService.classStatusFor(
-                          schedule: schedule,
-                          now: now,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => SizedBox(
+      width: constraints.maxWidth,
+      height: 292,
+      child: Column(
+        children: [
+          _TimetableMoveButton(
+            key: const ValueKey('timetable-previous-button'),
+            icon: Icons.keyboard_arrow_up_rounded,
+            label: '이전 교시 보기',
+            enabled: selectedIndex > 0,
+            onTap: () => onMove(-1),
+          ),
+          Expanded(
+            child: ClipRect(
+              child: ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black,
+                    Colors.black,
+                    Colors.transparent,
+                  ],
+                  stops: [0, 0.13, 0.87, 1],
+                ).createShader(bounds),
+                blendMode: BlendMode.dstIn,
+                child: ListWheelScrollView.useDelegate(
+                  controller: controller,
+                  itemExtent: 82,
+                  physics: const NeverScrollableScrollPhysics(),
+                  perspective: 0.001,
+                  diameterRatio: 2.4,
+                  useMagnifier: true,
+                  magnification: 1.035,
+                  overAndUnderCenterOpacity: 0.48,
+                  onSelectedItemChanged: onSelectedItemChanged,
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    childCount: classes.length,
+                    builder: (context, index) {
+                      final schedule = classes[index];
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: TimetableTile(
+                            schedule: schedule,
+                            status: schoolTimeService.classStatusFor(
+                              schedule: schedule,
+                              now: now,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-        _TimetableMoveButton(
-          key: const ValueKey('timetable-next-button'),
-          icon: Icons.keyboard_arrow_down_rounded,
-          label: '다음 교시 보기',
-          enabled: selectedIndex < classes.length - 1,
-          onTap: () => onMove(1),
-        ),
-      ],
+          _TimetableMoveButton(
+            key: const ValueKey('timetable-next-button'),
+            icon: Icons.keyboard_arrow_down_rounded,
+            label: '다음 교시 보기',
+            enabled: selectedIndex < classes.length - 1,
+            onTap: () => onMove(1),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -634,29 +639,47 @@ class _Header extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('SchoolDash', style: AppTextStyles.appTitle),
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: onDateTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(dateLabel, style: AppTextStyles.caption),
-                    if (isUsingSelectedDate) ...[
-                      const SizedBox(width: 5),
-                      const Icon(Icons.edit_calendar_outlined, size: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'SchoolDash',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.appTitle,
+              ),
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: onDateTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 3,
+                    horizontal: 2,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          dateLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
+                      if (isUsingSelectedDate) ...[
+                        const SizedBox(width: 5),
+                        const Icon(Icons.edit_calendar_outlined, size: 14),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 12),
         IconButton(
           onPressed: onProfileTap,
           tooltip: '설정',

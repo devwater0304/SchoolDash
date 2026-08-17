@@ -52,6 +52,31 @@ void main() {
     expect(find.text('진로'), findsWidgets);
     expect(find.byType(SingleChildScrollView), findsNothing);
   });
+
+  testWidgets('fits the weekday grid in a narrow mobile viewport', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repository = _CountingRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WeeklyTimetableScreen(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: repository,
+            fallbackRepository: repository,
+          ),
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+          isActive: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('7교시'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+  });
 }
 
 const _profile = SchoolProfile(

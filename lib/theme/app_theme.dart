@@ -7,7 +7,7 @@ import 'app_spacing.dart';
 abstract final class AppTheme {
   static ThemeData get light => ThemeData(
     useMaterial3: true,
-    scaffoldBackgroundColor: AppColors.surface,
+    scaffoldBackgroundColor: Colors.transparent,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.sky,
       brightness: Brightness.light,

@@ -42,6 +42,19 @@ class SchoolDashShell extends StatefulWidget {
 
 class _SchoolDashShellState extends State<SchoolDashShell> {
   var _selectedIndex = 1;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openSettings(BuildContext context) async {
     final profileRepository = widget.profileRepository;
@@ -70,45 +83,78 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
 
   @override
   Widget build(BuildContext context) {
+    final mealLoadService = widget.mealLoadService;
+    final mealPage = mealLoadService == null
+        ? const _MealPlaceholder()
+        : MealScreen(
+            profile: widget.profile,
+            mealLoadService: mealLoadService,
+            timetableLoadService: widget.timetableLoadService,
+            clock: widget.clock,
+            dateController: widget.dateController,
+            isActive: _selectedIndex == 2,
+          );
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) => setState(() => _selectedIndex = index),
         children: [
-          WeeklyTimetableScreen(
-            profile: widget.profile,
-            timetableLoadService: widget.timetableLoadService,
-            clock: widget.clock,
-            dateController: widget.dateController,
-            isActive: _selectedIndex == 0,
-          ),
-          HomeScreen(
-            profile: widget.profile,
-            timetableLoadService: widget.timetableLoadService,
-            clock: widget.clock,
-            dateController: widget.dateController,
-            mealLoadService: widget.mealLoadService,
-            isActive: _selectedIndex == 1,
-            onProfileTap: () => _openSettings(context),
-          ),
-          if (widget.mealLoadService case final mealLoadService?)
-            MealScreen(
+          _KeepAlivePage(
+            child: WeeklyTimetableScreen(
               profile: widget.profile,
-              mealLoadService: mealLoadService,
               timetableLoadService: widget.timetableLoadService,
               clock: widget.clock,
               dateController: widget.dateController,
-              isActive: _selectedIndex == 2,
-            )
-          else
-            const _MealPlaceholder(),
+              isActive: _selectedIndex == 0,
+            ),
+          ),
+          _KeepAlivePage(
+            child: HomeScreen(
+              profile: widget.profile,
+              timetableLoadService: widget.timetableLoadService,
+              clock: widget.clock,
+              dateController: widget.dateController,
+              mealLoadService: widget.mealLoadService,
+              isActive: _selectedIndex == 1,
+              onProfileTap: () => _openSettings(context),
+            ),
+          ),
+          _KeepAlivePage(child: mealPage),
         ],
       ),
       bottomNavigationBar: AppBottomNavigation(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
+        onDestinationSelected: (index) {
+          if (index == _selectedIndex) return;
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+          );
+        },
       ),
     );
+  }
+}
+
+class _KeepAlivePage extends StatefulWidget {
+  const _KeepAlivePage({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
