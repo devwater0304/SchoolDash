@@ -86,7 +86,7 @@ abstract final class AppTheme {
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.sky,
       brightness: Brightness.dark,
-      surface: const Color(0xFF171C23),
+      surface: const Color(0xFF151618),
     ),
     fontFamily: AppTextStyles.fontFamily,
     textTheme: ThemeData.dark().textTheme.apply(

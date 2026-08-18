@@ -4,20 +4,23 @@ import 'package:school_dash/services/app_appearance.dart';
 import 'package:school_dash/widgets/app_background.dart';
 
 void main() {
-  test('maps each selected background to one source-image third', () {
+  test('maps each selection to its own complete asset', () {
     expect(
-      backgroundPanelAlignment(AppBackgroundType.sunset),
-      Alignment.centerLeft,
+      AppBackground.assets[AppBackgroundType.sunset],
+      'assets/images/background_sunset.png',
     );
-    expect(backgroundPanelAlignment(AppBackgroundType.stars), Alignment.center);
     expect(
-      backgroundPanelAlignment(AppBackgroundType.forest),
-      Alignment.centerRight,
+      AppBackground.assets[AppBackgroundType.stars],
+      'assets/images/background_stars.png',
+    );
+    expect(
+      AppBackground.assets[AppBackgroundType.forest],
+      'assets/images/background_forest.png',
     );
   });
 
   testWidgets(
-    'keeps the background image wider than the viewport for cropping',
+    'renders one selected full-size background image without a crop container',
     (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -29,8 +32,7 @@ void main() {
         ),
       );
 
-      final overflow = tester.widget<OverflowBox>(find.byType(OverflowBox));
-      expect(overflow.maxWidth, 2400);
+      expect(find.byType(OverflowBox), findsNothing);
       expect(find.byType(Image), findsOneWidget);
     },
   );

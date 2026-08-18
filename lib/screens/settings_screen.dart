@@ -96,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: _changeSchool,
             ),
             const SizedBox(height: AppSpacing.section),
-            const Text('앱 설정', style: AppTextStyles.sectionTitle),
+            const Text('시간 설정', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 12),
             _SettingsTile(
               icon: Icons.calendar_month_outlined,
@@ -105,7 +105,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => showAppDatePicker(context, widget.dateController),
             ),
             if (widget.appearanceController case final appearance?) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.section),
+              const Text('화면 설정', style: AppTextStyles.sectionTitle),
+              const SizedBox(height: 12),
               ListenableBuilder(
                 listenable: appearance,
                 builder: (context, _) => Column(

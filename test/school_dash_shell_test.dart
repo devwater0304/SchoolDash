@@ -124,6 +124,37 @@ void main() {
     expect(find.text('SchoolDash'), findsOneWidget);
   });
 
+  testWidgets('moves directly to a tapped tab without stopping midway', (
+    tester,
+  ) async {
+    final repository = SampleSchoolRepository(events: const []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchoolDashShell(
+          profile: _profile,
+          timetableLoadService: TimetableLoadService(
+            primaryRepository: repository,
+            fallbackRepository: repository,
+          ),
+          mealLoadService: MealLoadService(repository: _TestMealRepository()),
+          clock: _FixedClock(DateTime(2026, 6, 15, 9)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('시간표'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('급식'));
+    await tester.pumpAndSettle();
+
+    final controller = tester
+        .widget<PageView>(find.byType(PageView))
+        .controller!;
+    expect(controller.page, closeTo(2, 0.01));
+    expect(find.text('오늘의 급식'), findsOneWidget);
+  });
+
   testWidgets('uses distance instead of velocity for page changes', (
     tester,
   ) async {

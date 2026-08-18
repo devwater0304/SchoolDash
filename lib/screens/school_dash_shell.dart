@@ -59,6 +59,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
   double _viewportWidth = 0;
   var _pageGestureActive = false;
   var _isSnapping = false;
+  int? _navigationTarget;
 
   @override
   void initState() {
@@ -162,11 +163,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
           if (index == _selectedIndex) return;
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-          );
+          _animateToPage(index, duration: const Duration(milliseconds: 240));
         },
       ),
     );
@@ -174,6 +171,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
 
   bool _limitPageDrag(ScrollNotification notification) {
     if (notification.depth != 0) return false;
+    if (_navigationTarget != null) return false;
     if (notification is ScrollStartNotification) {
       // Touch drags are locked by Listener before PageView receives them.
       // This branch covers trackpad/wheel scrolling, which has no pointer drag.
@@ -186,6 +184,16 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
       return false;
     }
     if (notification is ScrollEndNotification) {
+      if (_pageGestureActive && _pointerGestureStartIndex == null) {
+        final page = _pageController.page;
+        final startPage = _dragStartIndex;
+        if (page != null && startPage != null) {
+          final target = _targetForDisplacement(page - startPage, startPage);
+          _pageGestureActive = false;
+          _snapTo(target);
+          return false;
+        }
+      }
       _pageGestureActive = false;
       return false;
     }
@@ -222,19 +230,22 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
   void _onPointerUp(PointerUpEvent event) {
     final startPage = _dragStartIndex;
     final distance = _dragDistancePixels.value;
-    if (startPage == null || distance == null || _viewportWidth <= 0) return;
-    final targetPage =
-        (distance.abs() >= _viewportWidth * _swipeThreshold
-                ? startPage + (distance.isNegative ? -1 : 1)
-                : startPage)
-            .clamp(0, _lastTabIndex)
-            .toInt();
+    if (startPage == null || distance == null || _viewportWidth <= 0) {
+      _pageGestureActive = false;
+      return;
+    }
+    final targetPage = _targetForDisplacement(
+      distance / _viewportWidth,
+      startPage,
+    );
     _pageGestureActive = false;
     _snapTo(targetPage);
   }
 
   void _onPageChanged(int index) {
-    final startIndex = _pointerGestureStartIndex ?? _dragStartIndex;
+    final startIndex =
+        _pointerGestureStartIndex ??
+        (_pageGestureActive ? _dragStartIndex : null);
     if (startIndex != null && (index - startIndex).abs() > 1) {
       final constrainedIndex = index > startIndex
           ? startIndex + 1
@@ -263,10 +274,9 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
         _pointerGestureStartIndex = null;
         return;
       }
-      await _pageController.animateToPage(
+      await _animateToPage(
         targetPage,
         duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
       );
       if (mounted) {
         _pointerStartX = null;
@@ -274,6 +284,34 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
         _isSnapping = false;
       }
     });
+  }
+
+  int _targetForDisplacement(double displacement, int startPage) =>
+      (displacement.abs() >= _swipeThreshold
+              ? startPage + (displacement.isNegative ? -1 : 1)
+              : startPage)
+          .clamp(0, _lastTabIndex)
+          .toInt();
+
+  Future<void> _animateToPage(
+    int targetPage, {
+    required Duration duration,
+  }) async {
+    final target = targetPage.clamp(0, _lastTabIndex);
+    if (_navigationTarget == target || !_pageController.hasClients) return;
+    _navigationTarget = target;
+    try {
+      await _pageController.animateToPage(
+        target,
+        duration: duration,
+        curve: Curves.easeOutCubic,
+      );
+      if (mounted && _selectedIndex != target) {
+        setState(() => _selectedIndex = target);
+      }
+    } finally {
+      if (_navigationTarget == target) _navigationTarget = null;
+    }
   }
 }
 

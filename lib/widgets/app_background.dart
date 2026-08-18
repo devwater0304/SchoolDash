@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/app_appearance.dart';
 import '../theme/app_colors.dart';
 
-const _backgroundAsset = 'assets/images/schooldash_backgrounds.png';
-
-class AppBackground extends StatelessWidget {
+class AppBackground extends StatefulWidget {
   const AppBackground({
     required this.background,
     required this.brightness,
@@ -17,38 +15,13 @@ class AppBackground extends StatelessWidget {
   final Brightness brightness;
   final Widget child;
 
-  @override
-  Widget build(BuildContext context) {
-    final dark = brightness == Brightness.dark;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? const [Color(0xFF090909), Color(0xFF151515)]
-                  : const [AppColors.backgroundTop, AppColors.backgroundBottom],
-            ),
-          ),
-        ),
-        if (background != AppBackgroundType.standard)
-          Opacity(
-            opacity: dark ? 0.52 : 0.24,
-            child: _PanelBackground(background: background),
-          ),
-        if (dark) const ColoredBox(color: Color(0x77000000)),
-        if (dark)
-          ColorFiltered(colorFilter: _darkUiFilter, child: child)
-        else
-          child,
-      ],
-    );
-  }
+  static const assets = {
+    AppBackgroundType.sunset: 'assets/images/background_sunset.png',
+    AppBackgroundType.stars: 'assets/images/background_stars.png',
+    AppBackgroundType.forest: 'assets/images/background_forest.png',
+  };
 
-  static const _darkUiFilter = ColorFilter.matrix([
+  static const darkUiFilter = ColorFilter.matrix([
     -0.18,
     -0.54,
     -0.10,
@@ -70,45 +43,64 @@ class AppBackground extends StatelessWidget {
     1,
     0,
   ]);
+
+  @override
+  State<AppBackground> createState() => _AppBackgroundState();
 }
 
-class _PanelBackground extends StatelessWidget {
-  const _PanelBackground({required this.background});
+class _AppBackgroundState extends State<AppBackground> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    for (final asset in AppBackground.assets.values) {
+      precacheImage(AssetImage(asset), context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.brightness == Brightness.dark;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: dark
+                  ? const [Color(0xFF090909), Color(0xFF151515)]
+                  : const [AppColors.backgroundTop, AppColors.backgroundBottom],
+            ),
+          ),
+        ),
+        if (widget.background != AppBackgroundType.standard)
+          Opacity(
+            opacity: dark ? 0.52 : 0.24,
+            child: _BackgroundImage(background: widget.background),
+          ),
+        if (dark) const ColoredBox(color: Color(0x77000000)),
+        if (dark)
+          ColorFiltered(
+            colorFilter: AppBackground.darkUiFilter,
+            child: widget.child,
+          )
+        else
+          widget.child,
+      ],
+    );
+  }
+}
+
+class _BackgroundImage extends StatelessWidget {
+  const _BackgroundImage({required this.background});
 
   final AppBackgroundType background;
 
   @override
   Widget build(BuildContext context) {
-    final alignment = backgroundPanelAlignment(background);
-
-    return LayoutBuilder(
-      builder: (context, constraints) => SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: ClipRect(
-          child: OverflowBox(
-            minWidth: constraints.maxWidth * 3,
-            maxWidth: constraints.maxWidth * 3,
-            minHeight: constraints.maxHeight,
-            maxHeight: constraints.maxHeight,
-            alignment: alignment,
-            child: Image.asset(
-              _backgroundAsset,
-              width: constraints.maxWidth * 3,
-              height: constraints.maxHeight,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ),
-    );
+    final asset = AppBackground.assets[background];
+    if (asset == null) return const SizedBox.shrink();
+    return Image.asset(asset, fit: BoxFit.cover, gaplessPlayback: true);
   }
 }
-
-Alignment backgroundPanelAlignment(AppBackgroundType background) =>
-    switch (background) {
-      AppBackgroundType.sunset => Alignment.centerLeft,
-      AppBackgroundType.stars => Alignment.center,
-      AppBackgroundType.forest => Alignment.centerRight,
-      AppBackgroundType.standard => Alignment.center,
-    };

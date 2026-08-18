@@ -82,7 +82,8 @@ void main() {
     );
 
     expect(find.text('학교'), findsOneWidget);
-    expect(find.text('앱 설정'), findsOneWidget);
+    expect(find.text('시간 설정'), findsOneWidget);
+    expect(find.text('화면 설정'), findsOneWidget);
     await tester.tap(find.text('화면 모드'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('다크'));
