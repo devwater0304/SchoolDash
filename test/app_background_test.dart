@@ -36,4 +36,20 @@ void main() {
       expect(find.byType(Image), findsOneWidget);
     },
   );
+
+  testWidgets('works as a MaterialApp builder shell', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => AppBackground(
+          background: AppBackgroundType.forest,
+          brightness: Theme.of(context).brightness,
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: const Scaffold(body: Center(child: Text('Home'))),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Home'), findsOneWidget);
+  });
 }
