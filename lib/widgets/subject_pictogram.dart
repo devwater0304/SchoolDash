@@ -34,9 +34,18 @@ IconData subjectIcon(String subject) {
 }
 
 class SubjectPictogram extends StatelessWidget {
-  const SubjectPictogram({required this.subject, super.key});
+  const SubjectPictogram({
+    required this.subject,
+    this.size = 18,
+    this.color = AppColors.skyDark,
+    super.key,
+  });
+
   final String subject;
+  final double size;
+  final Color color;
+
   @override
   Widget build(BuildContext context) =>
-      Icon(subjectIcon(subject), size: 18, color: AppColors.skyDark);
+      Icon(subjectIcon(subject), size: size, color: color);
 }

@@ -29,7 +29,7 @@ class AppBackground extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: dark
-                  ? const [Color(0xFF080B10), Color(0xFF121820)]
+                  ? const [Color(0xFF090909), Color(0xFF151515)]
                   : const [AppColors.backgroundTop, AppColors.backgroundBottom],
             ),
           ),
@@ -39,7 +39,7 @@ class AppBackground extends StatelessWidget {
             opacity: dark ? 0.52 : 0.24,
             child: _PanelBackground(background: background),
           ),
-        if (dark) const ColoredBox(color: Color(0x66000000)),
+        if (dark) const ColoredBox(color: Color(0x77000000)),
         if (dark)
           ColorFiltered(colorFilter: _darkUiFilter, child: child)
         else
@@ -53,7 +53,7 @@ class AppBackground extends StatelessWidget {
     -0.54,
     -0.10,
     0,
-    225,
+    235,
     -0.18,
     -0.54,
     -0.10,
@@ -63,7 +63,7 @@ class AppBackground extends StatelessWidget {
     -0.54,
     -0.10,
     0,
-    245,
+    235,
     0,
     0,
     0,
@@ -79,26 +79,36 @@ class _PanelBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alignment = switch (background) {
-      AppBackgroundType.sunset => Alignment.centerLeft,
-      AppBackgroundType.stars => Alignment.center,
-      AppBackgroundType.forest => Alignment.centerRight,
-      AppBackgroundType.standard => Alignment.center,
-    };
+    final alignment = backgroundPanelAlignment(background);
 
     return LayoutBuilder(
-      builder: (context, constraints) => ClipRect(
-        child: Align(
-          alignment: alignment,
-          widthFactor: 1 / 3,
-          child: Image.asset(
-            _backgroundAsset,
-            width: constraints.maxWidth * 3,
-            height: constraints.maxHeight,
-            fit: BoxFit.cover,
+      builder: (context, constraints) => SizedBox(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        child: ClipRect(
+          child: OverflowBox(
+            minWidth: constraints.maxWidth * 3,
+            maxWidth: constraints.maxWidth * 3,
+            minHeight: constraints.maxHeight,
+            maxHeight: constraints.maxHeight,
+            alignment: alignment,
+            child: Image.asset(
+              _backgroundAsset,
+              width: constraints.maxWidth * 3,
+              height: constraints.maxHeight,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+Alignment backgroundPanelAlignment(AppBackgroundType background) =>
+    switch (background) {
+      AppBackgroundType.sunset => Alignment.centerLeft,
+      AppBackgroundType.stars => Alignment.center,
+      AppBackgroundType.forest => Alignment.centerRight,
+      AppBackgroundType.standard => Alignment.center,
+    };

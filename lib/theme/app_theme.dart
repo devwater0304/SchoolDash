@@ -99,5 +99,12 @@ abstract final class AppTheme {
       elevation: 0,
       scrolledUnderElevation: 0,
     ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Color(0xFFF5F5F5),
+      modalBackgroundColor: Color(0xFFF5F5F5),
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      dragHandleColor: Color(0xFF9A9A9A),
+    ),
   );
 }

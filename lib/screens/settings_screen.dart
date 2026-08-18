@@ -86,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             _ProfileSummary(profile: profile),
             const SizedBox(height: AppSpacing.section),
-            const Text('내 정보', style: AppTextStyles.sectionTitle),
+            const Text('학교', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 12),
             _SettingsTile(
               icon: Icons.school_outlined,
@@ -95,6 +95,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   '${profile.schoolName} · ${profile.grade}학년 ${profile.classNumber}반',
               onTap: _changeSchool,
             ),
+            const SizedBox(height: AppSpacing.section),
+            const Text('앱 설정', style: AppTextStyles.sectionTitle),
+            const SizedBox(height: 12),
             _SettingsTile(
               icon: Icons.calendar_month_outlined,
               title: '기준 시간',
@@ -102,9 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => showAppDatePicker(context, widget.dateController),
             ),
             if (widget.appearanceController case final appearance?) ...[
-              const SizedBox(height: AppSpacing.section),
-              const Text('화면 설정', style: AppTextStyles.sectionTitle),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               ListenableBuilder(
                 listenable: appearance,
                 builder: (context, _) => Column(

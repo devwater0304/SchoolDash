@@ -30,6 +30,7 @@ void main() {
     );
     await tester.pump();
     expect(find.byKey(const ValueKey('status-water')), findsOneWidget);
+    expect(find.byIcon(Icons.functions_rounded), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(

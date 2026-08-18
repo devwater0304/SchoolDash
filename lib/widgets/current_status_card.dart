@@ -7,6 +7,7 @@ import '../models/school_time_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import 'subject_pictogram.dart';
 
 class CurrentStatusCard extends StatelessWidget {
   const CurrentStatusCard({
@@ -72,7 +73,13 @@ class CurrentStatusCard extends StatelessWidget {
               color: AppColors.surface,
               shape: BoxShape.circle,
             ),
-            child: Icon(copy.icon, color: AppColors.skyDark, size: 27),
+            child: status.currentClass == null
+                ? Icon(copy.icon, color: AppColors.skyDark, size: 27)
+                : SubjectPictogram(
+                    subject: status.currentClass!.subject,
+                    size: 25,
+                    color: AppColors.skyDark,
+                  ),
           ),
           const SizedBox(width: AppSpacing.medium),
           Expanded(
