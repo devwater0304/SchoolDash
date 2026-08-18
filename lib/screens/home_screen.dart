@@ -875,8 +875,12 @@ class _Header extends StatelessWidget {
           onPressed: onProfileTap,
           tooltip: '설정',
           style: IconButton.styleFrom(
-            backgroundColor: AppColors.skyPale,
-            foregroundColor: AppColors.skyDark,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.surfaceSoft
+                : AppColors.skyPale,
+            foregroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.ink
+                : AppColors.skyDark,
             minimumSize: const Size(44, 44),
           ),
           icon: const Icon(Icons.person_outline_rounded),

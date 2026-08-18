@@ -48,6 +48,23 @@ class AppBackground extends StatefulWidget {
   State<AppBackground> createState() => _AppBackgroundState();
 }
 
+/// Keeps the single app-wide background layer inside MaterialApp's inherited
+/// widget tree while the Navigator changes its route child underneath it.
+class AppShell extends StatelessWidget {
+  const AppShell({required this.background, required this.child, super.key});
+
+  final AppBackgroundType background;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AppBackground(
+    key: const ValueKey('app-background-layer'),
+    background: background,
+    brightness: Theme.of(context).brightness,
+    child: child,
+  );
+}
+
 class _AppBackgroundState extends State<AppBackground> {
   @override
   void didChangeDependencies() {

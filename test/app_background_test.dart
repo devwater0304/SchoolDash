@@ -40,9 +40,8 @@ void main() {
   testWidgets('works as a MaterialApp builder shell', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        builder: (context, child) => AppBackground(
+        builder: (context, child) => AppShell(
           background: AppBackgroundType.forest,
-          brightness: Theme.of(context).brightness,
           child: child ?? const SizedBox.shrink(),
         ),
         home: const Scaffold(body: Center(child: Text('Home'))),
@@ -51,5 +50,6 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Home'), findsOneWidget);
+    expect(find.byType(AppBackground), findsOneWidget);
   });
 }

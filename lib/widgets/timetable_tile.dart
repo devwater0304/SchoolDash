@@ -17,6 +17,13 @@ class TimetableTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = status == ClassStatus.current;
     final completed = status == ClassStatus.completed;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final periodBackground = current
+        ? AppColors.sky
+        : dark
+        ? AppColors.surfaceSoft
+        : AppColors.skyPale;
+    final periodForeground = current && dark ? AppColors.ink : Colors.white;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
@@ -39,13 +46,13 @@ class TimetableTile extends StatelessWidget {
             height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: current ? AppColors.sky : AppColors.skyPale,
+              color: periodBackground,
               shape: BoxShape.circle,
             ),
             child: Text(
               '${schedule.period}',
               style: TextStyle(
-                color: current ? Colors.white : AppColors.ink,
+                color: current ? periodForeground : AppColors.ink,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -77,7 +84,10 @@ class TimetableTile extends StatelessWidget {
             ),
           ),
           if (current)
-            const Icon(Icons.play_circle_fill_rounded, color: AppColors.sky),
+            Icon(
+              Icons.play_circle_fill_rounded,
+              color: dark ? AppColors.ink : AppColors.sky,
+            ),
         ],
       ),
     );

@@ -89,9 +89,8 @@ class SchoolDashApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: appearanceController.themeMode,
-        builder: (context, child) => AppBackground(
+        builder: (context, child) => AppShell(
           background: appearanceController.background,
-          brightness: Theme.of(context).brightness,
           child: child ?? const SizedBox.shrink(),
         ),
         home: AppStartGate(
