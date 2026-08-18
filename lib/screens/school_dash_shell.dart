@@ -94,8 +94,11 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
       return;
     }
     final profileChanged = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => SettingsScreen(
+      PageRouteBuilder<bool>(
+        opaque: true,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, animation, secondaryAnimation) => SettingsScreen(
           profile: widget.profile,
           profileRepository: profileRepository,
           nearbySchoolRepository: nearbySchoolRepository,

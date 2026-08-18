@@ -18,18 +18,20 @@ class TimetableTile extends StatelessWidget {
     final current = status == ClassStatus.current;
     final completed = status == ClassStatus.completed;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final periodBackground = current
+    final periodBackground = current && !dark
         ? AppColors.sky
         : dark
         ? AppColors.surfaceSoft
         : AppColors.skyPale;
-    final periodForeground = current && dark ? AppColors.ink : Colors.white;
+    final periodForeground = current && !dark ? Colors.white : AppColors.ink;
+    final tileColor = current && !dark ? AppColors.skySoft : AppColors.surface;
+    final tileBorder = current && !dark ? AppColors.sky : AppColors.line;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       decoration: BoxDecoration(
-        color: current ? AppColors.skySoft : AppColors.surface,
-        border: Border.all(color: current ? AppColors.sky : AppColors.line),
+        color: tileColor,
+        border: Border.all(color: tileBorder),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(

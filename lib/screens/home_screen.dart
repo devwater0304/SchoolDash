@@ -788,28 +788,35 @@ class _TimetableMoveButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    enabled: enabled,
-    label: label,
-    child: Material(
-      color: enabled ? AppColors.skySoft : AppColors.surfaceSoft,
-      borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
-      child: InkWell(
-        onTap: enabled ? onTap : null,
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: Material(
+        color: enabled
+            ? (dark ? AppColors.surfaceSoft : AppColors.skySoft)
+            : AppColors.surfaceSoft,
         borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: Icon(
-            icon,
-            color: enabled ? AppColors.skyDark : AppColors.completed,
-            size: 25,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
+          child: SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: Icon(
+              icon,
+              color: enabled
+                  ? (dark ? AppColors.ink : AppColors.skyDark)
+                  : AppColors.completed,
+              size: 25,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _Header extends StatelessWidget {
