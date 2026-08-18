@@ -69,7 +69,7 @@ class _AppBackgroundState extends State<AppBackground> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: dark
-                  ? const [Color(0xFF090909), Color(0xFF151515)]
+                  ? const [Color(0xFF0B0B0B), Color(0xFF171717)]
                   : const [AppColors.backgroundTop, AppColors.backgroundBottom],
             ),
           ),

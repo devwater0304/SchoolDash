@@ -178,7 +178,7 @@ class _StatusWaterPainter extends CustomPainter {
       amplitude: 2.5,
       wavelength: 52,
       phaseOffset: phase * math.pi * 2,
-      color: const Color(0x334DABF7),
+      color: const Color(0x244DABF7),
     );
     _paintWave(
       canvas: canvas,
@@ -187,7 +187,7 @@ class _StatusWaterPainter extends CustomPainter {
       amplitude: 3.2,
       wavelength: 67,
       phaseOffset: -phase * math.pi * 4 + 0.9,
-      color: const Color(0x4D3299E8),
+      color: const Color(0x3D3299E8),
     );
   }
 

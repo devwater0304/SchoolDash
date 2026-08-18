@@ -83,28 +83,34 @@ class SchoolDashApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: appearanceController,
-      builder: (context, _) => MaterialApp(
-        title: 'SchoolDash',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: appearanceController.themeMode,
-        builder: (context, child) => AppBackground(
-          background: appearanceController.background,
-          brightness: Theme.of(context).brightness,
-          child: child ?? const SizedBox.shrink(),
-        ),
-        home: AppStartGate(
-          profileRepository: profileRepository,
-          nearbySchoolRepository: nearbySchoolRepository,
-          schoolSearchRepository: schoolSearchRepository,
-          timetableLoadService: timetableLoadService,
-          mealLoadService: mealLoadService,
-          clock: clock,
-          dateController: dateController,
-          appearanceController: appearanceController,
+      builder: (context, _) => AppBackground(
+        background: appearanceController.background,
+        brightness: _resolvedBrightness(context),
+        child: MaterialApp(
+          title: 'SchoolDash',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: appearanceController.themeMode,
+          home: AppStartGate(
+            profileRepository: profileRepository,
+            nearbySchoolRepository: nearbySchoolRepository,
+            schoolSearchRepository: schoolSearchRepository,
+            timetableLoadService: timetableLoadService,
+            mealLoadService: mealLoadService,
+            clock: clock,
+            dateController: dateController,
+            appearanceController: appearanceController,
+          ),
         ),
       ),
     );
   }
+
+  Brightness _resolvedBrightness(BuildContext context) =>
+      switch (appearanceController.screenMode) {
+        AppScreenMode.light => Brightness.light,
+        AppScreenMode.dark => Brightness.dark,
+        AppScreenMode.system => MediaQuery.platformBrightnessOf(context),
+      };
 }
