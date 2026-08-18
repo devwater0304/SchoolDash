@@ -22,19 +22,19 @@ class AppBackground extends StatefulWidget {
   };
 
   static const darkUiFilter = ColorFilter.matrix([
-    -0.18,
-    -0.54,
-    -0.10,
+    0.10,
+    -0.16,
+    -0.76,
     0,
     235,
-    -0.18,
-    -0.54,
-    -0.10,
+    -0.30,
+    -0.26,
+    -0.26,
     0,
     235,
-    -0.18,
-    -0.54,
-    -0.10,
+    -0.50,
+    -0.837,
+    0.517,
     0,
     235,
     0,
@@ -76,10 +76,10 @@ class _AppBackgroundState extends State<AppBackground> {
         ),
         if (widget.background != AppBackgroundType.standard)
           Opacity(
-            opacity: dark ? 0.52 : 0.24,
+            opacity: dark ? 0.64 : 0.52,
             child: _BackgroundImage(background: widget.background),
           ),
-        if (dark) const ColoredBox(color: Color(0x77000000)),
+        if (dark) const ColoredBox(color: Color(0x18000000)),
         if (dark)
           ColorFiltered(
             colorFilter: AppBackground.darkUiFilter,

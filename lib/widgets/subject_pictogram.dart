@@ -37,15 +37,18 @@ class SubjectPictogram extends StatelessWidget {
   const SubjectPictogram({
     required this.subject,
     this.size = 18,
-    this.color = AppColors.skyDark,
+    this.color,
     super.key,
   });
 
   final String subject;
   final double size;
-  final Color color;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) =>
-      Icon(subjectIcon(subject), size: size, color: color);
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final resolvedColor = color ?? (isDark ? AppColors.ink : AppColors.skyDark);
+    return Icon(subjectIcon(subject), size: size, color: resolvedColor);
+  }
 }

@@ -67,8 +67,8 @@ class CurrentStatusCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 46,
+            height: 46,
             decoration: const BoxDecoration(
               color: AppColors.surface,
               shape: BoxShape.circle,
@@ -77,8 +77,7 @@ class CurrentStatusCard extends StatelessWidget {
                 ? Icon(copy.icon, color: AppColors.skyDark, size: 27)
                 : SubjectPictogram(
                     subject: status.currentClass!.subject,
-                    size: 25,
-                    color: AppColors.skyDark,
+                    size: 20,
                   ),
           ),
           const SizedBox(width: AppSpacing.medium),
