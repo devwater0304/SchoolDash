@@ -5,6 +5,7 @@ import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
 import '../repositories/school_search_repository.dart';
 import '../services/app_clock.dart';
+import '../services/app_appearance.dart';
 import '../services/meal_load_service.dart';
 import '../services/timetable_load_service.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -23,6 +24,7 @@ class SchoolDashShell extends StatefulWidget {
     this.nearbySchoolRepository,
     this.schoolSearchRepository,
     this.onProfileChanged,
+    this.appearanceController,
     required this.clock,
     super.key,
   });
@@ -36,6 +38,7 @@ class SchoolDashShell extends StatefulWidget {
   final SchoolSearchRepository? nearbySchoolRepository;
   final SchoolSearchRepository? schoolSearchRepository;
   final Future<void> Function()? onProfileChanged;
+  final AppAppearanceController? appearanceController;
 
   @override
   State<SchoolDashShell> createState() => _SchoolDashShellState();
@@ -97,6 +100,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
           nearbySchoolRepository: nearbySchoolRepository,
           schoolSearchRepository: schoolSearchRepository,
           dateController: dateController,
+          appearanceController: widget.appearanceController,
         ),
       ),
     );

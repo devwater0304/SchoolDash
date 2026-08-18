@@ -5,6 +5,8 @@ import 'package:school_dash/models/school_profile.dart';
 import 'package:school_dash/repositories/school_profile_repository.dart';
 import 'package:school_dash/screens/settings_screen.dart';
 import 'package:school_dash/services/app_clock.dart';
+import 'package:school_dash/services/app_appearance.dart';
+import 'package:school_dash/data/key_value_store.dart';
 
 void main() {
   testWidgets('reuses onboarding to change the saved school profile', (
@@ -63,6 +65,37 @@ void main() {
     expect(profiles.saved.grade, 2);
     expect(profiles.saved.classNumber, 3);
   });
+
+  testWidgets('updates the screen appearance from settings', (tester) async {
+    final appearance = AppAppearanceController(_MemoryStore());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsScreen(
+          profile: _profile,
+          profileRepository: _MemoryProfiles(_profile),
+          nearbySchoolRepository: const SampleSchoolSearchRepository(),
+          schoolSearchRepository: const SampleSchoolSearchRepository(),
+          dateController: AppDateController(),
+          appearanceController: appearance,
+        ),
+      ),
+    );
+
+    expect(find.text('화면 설정'), findsOneWidget);
+    await tester.tap(find.text('화면 모드'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('다크'));
+    await tester.pumpAndSettle();
+    expect(appearance.screenMode, AppScreenMode.dark);
+
+    await tester.ensureVisible(find.text('배경'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('배경'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('별'));
+    await tester.pumpAndSettle();
+    expect(appearance.background, AppBackgroundType.stars);
+  });
 }
 
 const _profile = SchoolProfile(
@@ -90,4 +123,22 @@ class _MemoryProfiles implements SchoolProfileRepository {
 
   @override
   Future<void> saveProfile(SchoolProfile profile) async => saved = profile;
+}
+
+class _MemoryStore implements KeyValueStore {
+  final Map<String, String> _values = {};
+
+  @override
+  Future<bool> containsKey(String key) async => _values.containsKey(key);
+
+  @override
+  Future<String?> readString(String key) async => _values[key];
+
+  @override
+  Future<void> remove(String key) async => _values.remove(key);
+
+  @override
+  Future<void> writeString(String key, String value) async {
+    _values[key] = value;
+  }
 }

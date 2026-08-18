@@ -5,6 +5,7 @@ import '../models/school_profile.dart';
 import '../repositories/school_profile_repository.dart';
 import '../repositories/school_search_repository.dart';
 import '../services/app_clock.dart';
+import '../services/app_appearance.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -18,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
     required this.nearbySchoolRepository,
     required this.schoolSearchRepository,
     required this.dateController,
+    this.appearanceController,
     super.key,
   });
 
@@ -26,6 +28,7 @@ class SettingsScreen extends StatefulWidget {
   final SchoolSearchRepository nearbySchoolRepository;
   final SchoolSearchRepository schoolSearchRepository;
   final AppDateController dateController;
+  final AppAppearanceController? appearanceController;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -98,6 +101,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: _dateLabel(widget.dateController),
               onTap: () => showAppDatePicker(context, widget.dateController),
             ),
+            if (widget.appearanceController case final appearance?) ...[
+              const SizedBox(height: AppSpacing.section),
+              const Text('화면 설정', style: AppTextStyles.sectionTitle),
+              const SizedBox(height: 12),
+              ListenableBuilder(
+                listenable: appearance,
+                builder: (context, _) => Column(
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.brightness_6_outlined,
+                      title: '화면 모드',
+                      subtitle: _screenModeLabel(appearance.screenMode),
+                      onTap: () => _showScreenModePicker(appearance),
+                    ),
+                    const SizedBox(height: 10),
+                    _SettingsTile(
+                      icon: Icons.wallpaper_outlined,
+                      title: '배경',
+                      subtitle: _backgroundLabel(appearance.background),
+                      onTap: () => _showBackgroundPicker(appearance),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.section),
             const Text('앱', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 12),
@@ -114,6 +142,96 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return '테스트 시간 · ${selected.year}. ${selected.month}. ${selected.day}. '
         '${selected.hour.toString().padLeft(2, '0')}:${selected.minute.toString().padLeft(2, '0')}';
   }
+
+  String _screenModeLabel(AppScreenMode mode) => switch (mode) {
+    AppScreenMode.system => '시스템 설정 사용',
+    AppScreenMode.light => '라이트',
+    AppScreenMode.dark => '다크',
+  };
+
+  String _backgroundLabel(AppBackgroundType background) => switch (background) {
+    AppBackgroundType.standard => '기본',
+    AppBackgroundType.sunset => '노을',
+    AppBackgroundType.stars => '별',
+    AppBackgroundType.forest => '숲',
+  };
+
+  Future<void> _showScreenModePicker(AppAppearanceController appearance) =>
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) => _AppearancePicker<AppScreenMode>(
+          title: '화면 모드',
+          value: appearance.screenMode,
+          options: const {
+            AppScreenMode.system: '시스템',
+            AppScreenMode.light: '라이트',
+            AppScreenMode.dark: '다크',
+          },
+          onSelected: (value) async {
+            await appearance.setScreenMode(value);
+            if (sheetContext.mounted) Navigator.pop(sheetContext);
+          },
+        ),
+      );
+
+  Future<void> _showBackgroundPicker(AppAppearanceController appearance) =>
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) => _AppearancePicker<AppBackgroundType>(
+          title: '배경',
+          value: appearance.background,
+          options: const {
+            AppBackgroundType.standard: '기본',
+            AppBackgroundType.sunset: '노을',
+            AppBackgroundType.stars: '별',
+            AppBackgroundType.forest: '숲',
+          },
+          onSelected: (value) async {
+            await appearance.setBackground(value);
+            if (sheetContext.mounted) Navigator.pop(sheetContext);
+          },
+        ),
+      );
+}
+
+class _AppearancePicker<T> extends StatelessWidget {
+  const _AppearancePicker({
+    required this.title,
+    required this.value,
+    required this.options,
+    required this.onSelected,
+  });
+
+  final String title;
+  final T value;
+  final Map<T, String> options;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.sectionTitle),
+          const SizedBox(height: 8),
+          for (final option in options.entries)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(option.value, style: AppTextStyles.body),
+              trailing: option.key == value
+                  ? const Icon(Icons.check_rounded, color: AppColors.skyDark)
+                  : null,
+              onTap: () => onSelected(option.key),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _AppInfoTile extends StatelessWidget {

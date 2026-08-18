@@ -78,4 +78,26 @@ abstract final class AppTheme {
       ),
     ),
   );
+
+  static ThemeData get dark => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: Colors.transparent,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.sky,
+      brightness: Brightness.dark,
+      surface: const Color(0xFF171C23),
+    ),
+    fontFamily: AppTextStyles.fontFamily,
+    textTheme: ThemeData.dark().textTheme.apply(
+      fontFamily: AppTextStyles.fontFamily,
+      fontFamilyFallback: AppTextStyles.koreanFallback,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      foregroundColor: Color(0xFFF1F5F9),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+    ),
+  );
 }

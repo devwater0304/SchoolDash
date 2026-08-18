@@ -13,14 +13,18 @@ import 'repositories/school_profile_repository.dart';
 import 'repositories/school_search_repository.dart';
 import 'screens/app_start_gate.dart';
 import 'services/app_clock.dart';
+import 'services/app_appearance.dart';
 import 'services/geolocator_device_location_service.dart';
 import 'services/meal_load_service.dart';
 import 'services/timetable_load_service.dart';
-import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'widgets/app_background.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final keyValueStore = SharedPreferencesKeyValueStore();
+  final appearanceController = AppAppearanceController(keyValueStore);
+  await appearanceController.load();
   final sampleSchoolRepository = SampleSchoolRepository();
   final schoolRepository = NeisSchoolRepository(
     config: const NeisApiConfig.fromEnvironment(),
@@ -32,9 +36,7 @@ void main() {
   final appDateController = AppDateController();
   runApp(
     SchoolDashApp(
-      profileRepository: LocalSchoolProfileRepository(
-        SharedPreferencesKeyValueStore(),
-      ),
+      profileRepository: LocalSchoolProfileRepository(keyValueStore),
       nearbySchoolRepository: LocationBasedSchoolSearchRepository(
         deviceLocationService: const GeolocatorDeviceLocationService(),
         schoolLocationRepository: DataGoSchoolLocationRepository(
@@ -50,6 +52,7 @@ void main() {
       mealLoadService: MealLoadService(repository: schoolRepository),
       clock: appDateController,
       dateController: appDateController,
+      appearanceController: appearanceController,
     ),
   );
 }
@@ -62,6 +65,7 @@ class SchoolDashApp extends StatelessWidget {
     required this.timetableLoadService,
     this.mealLoadService,
     this.dateController,
+    required this.appearanceController,
     required this.clock,
     super.key,
   });
@@ -73,31 +77,33 @@ class SchoolDashApp extends StatelessWidget {
   final MealLoadService? mealLoadService;
   final AppClock clock;
   final AppDateController? dateController;
+  final AppAppearanceController appearanceController;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SchoolDash',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      builder: (context, child) => DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
-          ),
+    return ListenableBuilder(
+      listenable: appearanceController,
+      builder: (context, _) => MaterialApp(
+        title: 'SchoolDash',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: appearanceController.themeMode,
+        builder: (context, child) => AppBackground(
+          background: appearanceController.background,
+          brightness: Theme.of(context).brightness,
+          child: child ?? const SizedBox.shrink(),
         ),
-        child: child ?? const SizedBox.shrink(),
-      ),
-      home: AppStartGate(
-        profileRepository: profileRepository,
-        nearbySchoolRepository: nearbySchoolRepository,
-        schoolSearchRepository: schoolSearchRepository,
-        timetableLoadService: timetableLoadService,
-        mealLoadService: mealLoadService,
-        clock: clock,
-        dateController: dateController,
+        home: AppStartGate(
+          profileRepository: profileRepository,
+          nearbySchoolRepository: nearbySchoolRepository,
+          schoolSearchRepository: schoolSearchRepository,
+          timetableLoadService: timetableLoadService,
+          mealLoadService: mealLoadService,
+          clock: clock,
+          dateController: dateController,
+          appearanceController: appearanceController,
+        ),
       ),
     );
   }
