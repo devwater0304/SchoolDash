@@ -95,6 +95,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('이날은 급식이 없어요.'), findsOneWidget);
   });
+
+  testWidgets('skips weekend dates in the three-day meal preview', (
+    tester,
+  ) async {
+    await _pumpMealScreen(tester, DateTime(2026, 6, 19, 9));
+
+    expect(find.text('6월 20일 토요일'), findsNothing);
+    expect(find.text('6월 21일 일요일'), findsNothing);
+    expect(find.text('6월 22일 월요일'), findsOneWidget);
+    expect(find.text('6월 23일 화요일'), findsOneWidget);
+    expect(find.text('6월 24일 수요일'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpMealScreen(

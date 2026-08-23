@@ -180,10 +180,7 @@ class _MealScreenState extends State<MealScreen> {
             const Text('앞으로 3일', style: AppTextStyles.sectionTitle),
             const SizedBox(height: 14),
             _MealAccordion(
-              dates: List.generate(
-                3,
-                (index) => _today.add(Duration(days: index + 1)),
-              ),
+              dates: _nextWeekdays(_today),
               expandedDate: _expandedMealDate,
               mealFor: _mealFor,
               onToggle: (date) => setState(() {
@@ -710,6 +707,19 @@ String _dateLabel(DateTime date) {
 }
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+List<DateTime> _nextWeekdays(DateTime date, {int count = 3}) {
+  final dates = <DateTime>[];
+  var candidate = _dateOnly(date).add(const Duration(days: 1));
+  while (dates.length < count) {
+    if (candidate.weekday != DateTime.saturday &&
+        candidate.weekday != DateTime.sunday) {
+      dates.add(candidate);
+    }
+    candidate = candidate.add(const Duration(days: 1));
+  }
+  return dates;
+}
 
 bool _sameDate(DateTime first, DateTime second) =>
     first.year == second.year &&

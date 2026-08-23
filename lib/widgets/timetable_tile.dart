@@ -25,13 +25,12 @@ class TimetableTile extends StatelessWidget {
         : AppColors.skyPale;
     final periodForeground = current && !dark ? Colors.white : AppColors.ink;
     final tileColor = current && !dark ? AppColors.skySoft : AppColors.surface;
-    final tileBorder = current && !dark ? AppColors.sky : AppColors.line;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: tileColor,
-        border: Border.all(color: tileBorder),
+        border: Border.all(color: AppColors.line),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(
@@ -41,55 +40,79 @@ class TimetableTile extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: periodBackground,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '${schedule.period}',
-              style: TextStyle(
-                color: current ? periodForeground : AppColors.ink,
-                fontWeight: FontWeight.w800,
+          if (current)
+            Positioned(
+              left: 0,
+              top: 16,
+              bottom: 16,
+              child: Container(
+                width: 2,
+                decoration: BoxDecoration(
+                  color: AppColors.sky,
+                  borderRadius: BorderRadius.circular(1),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          SubjectPictogram(subject: schedule.subject),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            child: Row(
               children: [
-                Text(
-                  schedule.subject,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(
-                    color: completed ? AppColors.completed : AppColors.ink,
-                    decoration: completed ? TextDecoration.lineThrough : null,
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: periodBackground,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${schedule.period}',
+                    style: TextStyle(
+                      color: current ? periodForeground : AppColors.ink,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${schedule.time}  ·  ${schedule.teacher}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.caption,
+                const SizedBox(width: 12),
+                SubjectPictogram(subject: schedule.subject),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        schedule.subject,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body.copyWith(
+                          color: completed
+                              ? AppColors.completed
+                              : AppColors.ink,
+                          decoration: completed
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${schedule.time}  ·  ${schedule.teacher}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption,
+                      ),
+                    ],
+                  ),
                 ),
+                if (current)
+                  const Icon(
+                    Icons.play_circle_fill_rounded,
+                    color: AppColors.ink,
+                  ),
               ],
             ),
           ),
-          if (current)
-            Icon(
-              Icons.play_circle_fill_rounded,
-              color: dark ? AppColors.ink : AppColors.sky,
-            ),
         ],
       ),
     );

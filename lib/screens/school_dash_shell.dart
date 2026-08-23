@@ -96,8 +96,8 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
     final profileChanged = await Navigator.of(context).push<bool>(
       PageRouteBuilder<bool>(
         opaque: true,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
+        transitionDuration: const Duration(milliseconds: 180),
+        reverseTransitionDuration: const Duration(milliseconds: 160),
         pageBuilder: (context, animation, secondaryAnimation) => SettingsScreen(
           profile: widget.profile,
           profileRepository: profileRepository,
@@ -106,6 +106,23 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
           dateController: dateController,
           appearanceController: widget.appearanceController,
         ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curve = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: Tween<double>(begin: 0.98, end: 1).animate(curve),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.018, 0),
+                end: Offset.zero,
+              ).animate(curve),
+              child: child,
+            ),
+          );
+        },
       ),
     );
     if (profileChanged == true) await widget.onProfileChanged?.call();
