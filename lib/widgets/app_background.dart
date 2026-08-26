@@ -80,23 +80,33 @@ class _AppBackgroundState extends State<AppBackground> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? const [Color(0xFF0B0B0B), Color(0xFF171717)]
-                  : const [AppColors.backgroundTop, AppColors.backgroundBottom],
-            ),
+        RepaintBoundary(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: dark
+                        ? const [Color(0xFF0B0B0B), Color(0xFF171717)]
+                        : const [
+                            AppColors.backgroundTop,
+                            AppColors.backgroundBottom,
+                          ],
+                  ),
+                ),
+              ),
+              if (widget.background != AppBackgroundType.standard)
+                Opacity(
+                  opacity: dark ? 0.64 : 0.52,
+                  child: _BackgroundImage(background: widget.background),
+                ),
+              if (dark) const ColoredBox(color: Color(0x18000000)),
+            ],
           ),
         ),
-        if (widget.background != AppBackgroundType.standard)
-          Opacity(
-            opacity: dark ? 0.64 : 0.52,
-            child: _BackgroundImage(background: widget.background),
-          ),
-        if (dark) const ColoredBox(color: Color(0x18000000)),
         if (dark)
           ColorFiltered(
             colorFilter: AppBackground.darkUiFilter,

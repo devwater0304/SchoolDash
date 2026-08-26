@@ -40,80 +40,90 @@ class TimetableTile extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          if (current)
-            Positioned(
-              left: 0,
-              top: 16,
-              bottom: 16,
-              child: Container(
-                width: 2,
-                decoration: BoxDecoration(
-                  color: AppColors.sky,
-                  borderRadius: BorderRadius.circular(1),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: periodBackground,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '${schedule.period}',
+                style: TextStyle(
+                  color: current ? periodForeground : AppColors.ink,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: periodBackground,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${schedule.period}',
-                    style: TextStyle(
-                      color: current ? periodForeground : AppColors.ink,
-                      fontWeight: FontWeight.w800,
+            const SizedBox(width: 12),
+            SubjectPictogram(subject: schedule.subject),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    schedule.subject,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body.copyWith(
+                      color: completed ? AppColors.completed : AppColors.ink,
+                      decoration: completed ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                SubjectPictogram(subject: schedule.subject),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 3),
+                  Row(
                     children: [
-                      Text(
-                        schedule.subject,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.body.copyWith(
-                          color: completed
-                              ? AppColors.completed
-                              : AppColors.ink,
-                          decoration: completed
-                              ? TextDecoration.lineThrough
-                              : null,
+                      Flexible(
+                        flex: 2,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: current
+                                ? (dark
+                                      ? AppColors.sky.withValues(alpha: 0.14)
+                                      : AppColors.skyPale)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            schedule.time,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              color: current ? AppColors.skyDark : null,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${schedule.time}  ·  ${schedule.teacher}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption,
+                      const SizedBox(width: 6),
+                      Flexible(
+                        flex: 1,
+                        child: Text(
+                          '·  ${schedule.teacher}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                if (current)
-                  const Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: AppColors.ink,
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            if (current)
+              const Icon(Icons.play_circle_fill_rounded, color: AppColors.ink),
+          ],
+        ),
       ),
     );
   }

@@ -34,17 +34,50 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _transitionController;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _position;
+  var _isLeaving = false;
+  var _canPop = false;
+
   @override
   void initState() {
     super.initState();
+    _transitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      reverseDuration: const Duration(milliseconds: 160),
+    );
+    final curve = CurvedAnimation(
+      parent: _transitionController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _opacity = Tween<double>(begin: 0.98, end: 1).animate(curve);
+    _position = Tween<Offset>(
+      begin: const Offset(0.018, 0),
+      end: Offset.zero,
+    ).animate(curve);
+    _transitionController.forward();
     widget.dateController.addListener(_onDateChanged);
   }
 
   @override
   void dispose() {
+    _transitionController.dispose();
     widget.dateController.removeListener(_onDateChanged);
     super.dispose();
+  }
+
+  Future<void> _leaveSettings([Object? result]) async {
+    if (_isLeaving) return;
+    _isLeaving = true;
+    await _transitionController.reverse();
+    if (!mounted) return;
+    setState(() => _canPop = true);
+    Navigator.of(context).pop(result);
   }
 
   void _onDateChanged() {
@@ -73,67 +106,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
-    return Scaffold(
-      appBar: AppBar(title: const Text('설정')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.page,
-            AppSpacing.medium,
-            AppSpacing.page,
-            AppSpacing.large,
-          ),
-          children: [
-            _ProfileSummary(profile: profile),
-            const SizedBox(height: AppSpacing.section),
-            const Text('학교', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            _SettingsTile(
-              icon: Icons.school_outlined,
-              title: '내 학교',
-              subtitle:
-                  '${profile.schoolName} · ${profile.grade}학년 ${profile.classNumber}반',
-              onTap: _changeSchool,
-            ),
-            const SizedBox(height: AppSpacing.section),
-            const Text('시간 설정', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            _SettingsTile(
-              icon: Icons.calendar_month_outlined,
-              title: '기준 시간',
-              subtitle: _dateLabel(widget.dateController),
-              onTap: () => showAppDatePicker(context, widget.dateController),
-            ),
-            if (widget.appearanceController case final appearance?) ...[
-              const SizedBox(height: AppSpacing.section),
-              const Text('화면 설정', style: AppTextStyles.sectionTitle),
-              const SizedBox(height: 12),
-              ListenableBuilder(
-                listenable: appearance,
-                builder: (context, _) => Column(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.brightness_6_outlined,
-                      title: '화면 모드',
-                      subtitle: _screenModeLabel(appearance.screenMode),
-                      onTap: () => _showScreenModePicker(appearance),
-                    ),
-                    const SizedBox(height: 10),
-                    _SettingsTile(
-                      icon: Icons.wallpaper_outlined,
-                      title: '배경',
-                      subtitle: _backgroundLabel(appearance.background),
-                      onTap: () => _showBackgroundPicker(appearance),
+    return PopScope<Object?>(
+      canPop: _canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _leaveSettings(result);
+      },
+      child: FadeTransition(
+        opacity: _opacity,
+        child: SlideTransition(
+          position: _position,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(title: const Text('설정')),
+            body: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.medium,
+                  AppSpacing.page,
+                  AppSpacing.large,
+                ),
+                children: [
+                  _ProfileSummary(profile: profile),
+                  const SizedBox(height: AppSpacing.section),
+                  const Text('학교', style: AppTextStyles.sectionTitle),
+                  const SizedBox(height: 12),
+                  _SettingsTile(
+                    icon: Icons.school_outlined,
+                    title: '내 학교',
+                    subtitle:
+                        '${profile.schoolName} · ${profile.grade}학년 ${profile.classNumber}반',
+                    onTap: _changeSchool,
+                  ),
+                  const SizedBox(height: AppSpacing.section),
+                  const Text('시간 설정', style: AppTextStyles.sectionTitle),
+                  const SizedBox(height: 12),
+                  _SettingsTile(
+                    icon: Icons.calendar_month_outlined,
+                    title: '기준 시간',
+                    subtitle: _dateLabel(widget.dateController),
+                    onTap: () =>
+                        showAppDatePicker(context, widget.dateController),
+                  ),
+                  if (widget.appearanceController case final appearance?) ...[
+                    const SizedBox(height: AppSpacing.section),
+                    const Text('화면 설정', style: AppTextStyles.sectionTitle),
+                    const SizedBox(height: 12),
+                    ListenableBuilder(
+                      listenable: appearance,
+                      builder: (context, _) => Column(
+                        children: [
+                          _SettingsTile(
+                            icon: Icons.brightness_6_outlined,
+                            title: '화면 모드',
+                            subtitle: _screenModeLabel(appearance.screenMode),
+                            onTap: () => _showScreenModePicker(appearance),
+                          ),
+                          const SizedBox(height: 10),
+                          _SettingsTile(
+                            icon: Icons.wallpaper_outlined,
+                            title: '배경',
+                            subtitle: _backgroundLabel(appearance.background),
+                            onTap: () => _showBackgroundPicker(appearance),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
+                  const SizedBox(height: AppSpacing.section),
+                  const Text('앱', style: AppTextStyles.sectionTitle),
+                  const SizedBox(height: 12),
+                  const _AppInfoTile(),
+                ],
               ),
-            ],
-            const SizedBox(height: AppSpacing.section),
-            const Text('앱', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            const _AppInfoTile(),
-          ],
+            ),
+          ),
         ),
       ),
     );
