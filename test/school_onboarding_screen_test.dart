@@ -118,9 +118,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.drag(find.byType(ListView), const Offset(0, -250));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('반을 선택하세요'), warnIfMissed: false);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('1반').last);
+      await tester.tap(find.text('1반'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('설정 완료'));
       await tester.pumpAndSettle();

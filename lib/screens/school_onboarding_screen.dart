@@ -298,31 +298,9 @@ class _SchoolStep extends StatelessWidget {
           style: AppTextStyles.caption.copyWith(fontSize: 14),
         ),
         const SizedBox(height: AppSpacing.large),
-        TextField(
+        _SchoolSearchField(
           controller: searchController,
-          autofocus: false,
-          onTap: () => onSearchModeChanged(true),
-          style: AppTextStyles.input,
-          strutStyle: const StrutStyle(
-            fontFamily: AppTextStyles.fontFamily,
-            fontSize: 16,
-            forceStrutHeight: true,
-          ),
-          decoration: InputDecoration(
-            hintText: '학교 이름 입력',
-            prefixIcon: const Icon(Icons.search_rounded),
-            suffixIcon: isSearching
-                ? IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () {
-                      searchController.clear();
-                      onSearchModeChanged(false);
-                    },
-                  )
-                : null,
-            filled: true,
-            fillColor: AppColors.skySoft,
-          ),
+          onSearchModeChanged: onSearchModeChanged,
         ),
         const SizedBox(height: AppSpacing.large),
         Text(
@@ -498,133 +476,175 @@ class _ClassPicker extends StatelessWidget {
   final int? selectedClassNumber;
   final ValueChanged<int> onSelected;
 
-  Future<void> _showOptions(BuildContext context) async {
-    final selection = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: AppColors.surface,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.82,
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('반을 선택하세요', style: AppTextStyles.sectionTitle),
-                const SizedBox(height: 6),
-                const Text(
-                  '현재 반을 선택하면 바로 저장할 수 있어요.',
-                  style: AppTextStyles.caption,
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.45,
-                    children: List.generate(20, (index) {
-                      final classNumber = index + 1;
-                      final selected = classNumber == selectedClassNumber;
-                      return Material(
-                        color: selected
-                            ? AppColors.skyPale
-                            : AppColors.surfaceSoft,
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.smallRadius,
-                        ),
-                        child: InkWell(
-                          onTap: () => Navigator.of(context).pop(classNumber),
-                          borderRadius: BorderRadius.circular(
-                            AppSpacing.smallRadius,
-                          ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                AppSpacing.smallRadius,
-                              ),
-                              border: Border.all(
-                                color: selected
-                                    ? AppColors.sky
-                                    : AppColors.line,
-                              ),
-                            ),
-                            child: Text(
-                              '$classNumber반',
-                              style: AppTextStyles.body.copyWith(
-                                fontSize: 14,
-                                color: selected
-                                    ? AppColors.skyDark
-                                    : AppColors.ink,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 108,
+        mainAxisExtent: 48,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+      ),
+      itemCount: _ClassOption.defaults.length,
+      itemBuilder: (context, index) {
+        final option = _ClassOption.defaults[index];
+        final selected = option.value == selectedClassNumber;
+        return Semantics(
+          button: true,
+          selected: selected,
+          label: option.label,
+          child: Material(
+            color: selected ? AppColors.skyPale : AppColors.surfaceSoft,
+            borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
+            child: InkWell(
+              onTap: () => onSelected(option.value),
+              borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.smallRadius),
+                  border: Border.all(
+                    color: selected ? AppColors.sky : AppColors.line,
                   ),
                 ),
-              ],
+                child: Text(
+                  option.label,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 14,
+                    color: selected ? AppColors.skyDark : AppColors.ink,
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
-    if (selection != null) onSelected(selection);
+  }
+}
+
+class _ClassOption {
+  const _ClassOption({required this.value, required this.label});
+
+  final int value;
+  final String label;
+
+  static final defaults = List.unmodifiable(
+    List.generate(
+      20,
+      (index) => _ClassOption(value: index + 1, label: '${index + 1}반'),
+    ),
+  );
+}
+
+class _SchoolSearchField extends StatefulWidget {
+  const _SchoolSearchField({
+    required this.controller,
+    required this.onSearchModeChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<bool> onSearchModeChanged;
+
+  @override
+  State<_SchoolSearchField> createState() => _SchoolSearchFieldState();
+}
+
+class _SchoolSearchFieldState extends State<_SchoolSearchField> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode()..addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final label = selectedClassNumber == null
-        ? '반을 선택하세요'
-        : '$selectedClassNumber반';
-    return Semantics(
-      button: true,
-      label: '반 선택',
-      child: Material(
-        color: AppColors.skySoft,
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final focused = _focusNode.hasFocus;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: dark ? AppColors.surfaceSoft : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
-        child: InkWell(
-          onTap: () => _showOptions(context),
-          borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
-          child: Container(
-            height: AppSpacing.controlHeight,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
-              border: Border.all(
-                color: selectedClassNumber == null
-                    ? AppColors.line
-                    : AppColors.sky,
+        border: Border.all(
+          color: focused ? AppColors.sky : AppColors.line,
+          width: focused ? 1.4 : 1,
+        ),
+        boxShadow: focused
+            ? const [
+                BoxShadow(
+                  color: AppColors.cardShadow,
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ]
+            : const [],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.search_rounded,
+            size: 21,
+            color: focused ? AppColors.skyDark : AppColors.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: widget.controller,
+              focusNode: _focusNode,
+              autofocus: false,
+              onTap: () => widget.onSearchModeChanged(true),
+              style: AppTextStyles.input,
+              strutStyle: const StrutStyle(
+                fontFamily: AppTextStyles.fontFamily,
+                fontSize: 16,
+                forceStrutHeight: true,
+              ),
+              decoration: InputDecoration(
+                hintText: '학교 이름 입력',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
+                contentPadding: EdgeInsets.zero,
               ),
             ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.groups_rounded,
-                  color: AppColors.skyDark,
-                  size: 21,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: AppTextStyles.body.copyWith(
-                      color: selectedClassNumber == null
-                          ? AppColors.muted
-                          : AppColors.ink,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.unfold_more_rounded, color: AppColors.skyDark),
-              ],
-            ),
           ),
-        ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.controller,
+            builder: (context, value, _) {
+              if (value.text.isEmpty) return const SizedBox(width: 8);
+              return IconButton(
+                tooltip: '검색어 지우기',
+                icon: const Icon(Icons.close_rounded, size: 20),
+                color: AppColors.muted,
+                onPressed: () {
+                  widget.controller.clear();
+                  widget.onSearchModeChanged(false);
+                  _focusNode.unfocus();
+                },
+              );
+            },
+          ),
+        ],
       ),
     );
   }
