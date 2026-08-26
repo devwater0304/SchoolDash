@@ -18,13 +18,9 @@ class TimetableTile extends StatelessWidget {
     final current = status == ClassStatus.current;
     final completed = status == ClassStatus.completed;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final periodBackground = current && !dark
-        ? AppColors.sky
-        : dark
-        ? AppColors.surfaceSoft
-        : AppColors.skyPale;
-    final periodForeground = current && !dark ? Colors.white : AppColors.ink;
-    final tileColor = current && !dark ? AppColors.skySoft : AppColors.surface;
+    final periodBackground = dark ? AppColors.surfaceSoft : AppColors.skyPale;
+    const periodForeground = AppColors.ink;
+    const tileColor = AppColors.surface;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
       clipBehavior: Clip.antiAlias,
