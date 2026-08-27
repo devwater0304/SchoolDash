@@ -6,11 +6,13 @@ import '../repositories/school_profile_repository.dart';
 import '../repositories/school_search_repository.dart';
 import '../services/app_clock.dart';
 import '../services/app_appearance.dart';
+import '../services/timetable_load_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_date_picker.dart';
 import 'school_onboarding_screen.dart';
+import 'live_activity_preview_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -20,6 +22,7 @@ class SettingsScreen extends StatefulWidget {
     required this.schoolSearchRepository,
     required this.dateController,
     this.appearanceController,
+    this.timetableLoadService,
     super.key,
   });
 
@@ -29,6 +32,7 @@ class SettingsScreen extends StatefulWidget {
   final SchoolSearchRepository schoolSearchRepository;
   final AppDateController dateController;
   final AppAppearanceController? appearanceController;
+  final TimetableLoadService? timetableLoadService;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -106,6 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
+    final timetableLoadService = widget.timetableLoadService;
     return PopScope<Object?>(
       canPop: _canPop,
       onPopInvokedWithResult: (didPop, result) {
@@ -138,6 +143,24 @@ class _SettingsScreenState extends State<SettingsScreen>
                         '${profile.schoolName} · ${profile.grade}학년 ${profile.classNumber}반',
                     onTap: _changeSchool,
                   ),
+                  if (widget.dateController.isUsingTestTime &&
+                      timetableLoadService != null) ...[
+                    const SizedBox(height: 10),
+                    _SettingsTile(
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Live Activity Preview',
+                      subtitle: '현재 테스트 시간으로 미리보기',
+                      onTap: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => LiveActivityPreviewScreen(
+                            profile: widget.profile,
+                            timetableLoadService: timetableLoadService,
+                            dateController: widget.dateController,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.section),
                   const Text('시간 설정', style: AppTextStyles.sectionTitle),
                   const SizedBox(height: 12),

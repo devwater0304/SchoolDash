@@ -105,6 +105,7 @@ class _SchoolDashShellState extends State<SchoolDashShell> {
           schoolSearchRepository: schoolSearchRepository,
           dateController: dateController,
           appearanceController: widget.appearanceController,
+          timetableLoadService: widget.timetableLoadService,
         ),
       ),
     );
