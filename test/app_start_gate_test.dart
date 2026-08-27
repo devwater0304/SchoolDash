@@ -38,10 +38,8 @@ void main() {
 
     expect(find.text('학년과 반을 알려주세요'), findsOneWidget);
     await tester.tap(find.text('2학년'));
-    await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -250));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('반을 선택하세요'), warnIfMissed: false);
+    await tester.drag(find.byType(ListView), const Offset(0, -250));
     await tester.pumpAndSettle();
     await tester.tap(find.text('3반').last);
     await tester.pump();
