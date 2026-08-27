@@ -31,7 +31,7 @@ void main() {
       find.byKey(const ValueKey('live-activity-preview-card')),
       findsOneWidget,
     );
-    expect(find.text('1교시 · 수학'), findsOneWidget);
+    expect(find.text('1교시 수학'), findsOneWidget);
     expect(find.text('종료까지 25분 · 44%'), findsOneWidget);
     expect(find.text('다음 2교시 체육'), findsOneWidget);
   });
@@ -85,12 +85,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('1교시 · 수학'), findsOneWidget);
+    expect(find.text('1교시 수학'), findsOneWidget);
 
     controller.selectDateTime(DateTime(2026, 8, 14, 10));
     await tester.pump();
 
-    expect(find.text('2교시 · 체육'), findsOneWidget);
+    expect(find.text('2교시 체육'), findsOneWidget);
     expect(find.text('종료까지 30분 · 33%'), findsOneWidget);
   });
 }

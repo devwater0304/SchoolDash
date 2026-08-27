@@ -11,6 +11,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_date_picker.dart';
+import '../widgets/school_water_painter.dart';
+import '../widgets/subject_pictogram.dart';
 
 /// QA-only Flutter rendering of the compact information hierarchy intended for
 /// a future Live Activity. The card renders a [SchoolDashStatusSnapshot] only.
@@ -134,97 +136,121 @@ class LiveActivityPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final currentClass = snapshot.timeStatus.currentClass;
     final nextClass = snapshot.timeStatus.nextClass;
     final isDuringClass = currentClass != null;
-    final foreground = dark ? Colors.white : AppColors.ink;
-    final muted = dark ? Colors.white70 : AppColors.skyDeep;
     final progress = snapshot.classProgress.clamp(0.0, 1.0);
 
     return Semantics(
       label: 'Live Activity Preview',
-      child: Container(
-        key: const ValueKey('live-activity-preview-card'),
-        width: double.infinity,
-        height: 180,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: dark ? const Color(0xFF13283B) : AppColors.skyPale,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: dark ? const Color(0xFF31526C) : AppColors.cardBorder,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 20,
-              offset: Offset(0, 10),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: isDuringClass ? progress : 0),
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        builder: (context, waterProgress, _) => Container(
+          key: const ValueKey('live-activity-preview-card'),
+          width: double.infinity,
+          height: 158,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.skyPale, AppColors.skySoft],
             ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: AnimatedFractionallySizedBox(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                heightFactor: isDuringClass ? progress : 0,
-                widthFactor: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: dark
-                          ? const [Color(0xFF266B9A), Color(0xFF184968)]
-                          : const [Color(0xFFA5D8FF), Color(0xFF74C0FC)],
+            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+            border: Border.all(color: AppColors.cardBorder),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 20,
+                offset: Offset(0, 9),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              if (waterProgress > 0.001)
+                Positioned.fill(
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      key: const ValueKey('live-activity-water'),
+                      painter: SchoolWaterPainter(
+                        progress: waterProgress,
+                        phase: 0.28,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isDuringClass ? 'SCHOOLDASH · LIVE' : 'SCHOOLDASH',
-                    style: AppTextStyles.overline.copyWith(color: muted),
-                  ),
-                  const Spacer(),
-                  Text(
-                    isDuringClass
-                        ? '${currentClass.period}교시 · ${currentClass.subject}'
-                        : _statusTitle(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.cardTitle.copyWith(color: foreground),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    isDuringClass
-                        ? '종료까지 ${_durationLabel(snapshot.timeStatus.remaining)} · ${(progress * 100).round()}%'
-                        : _statusDetail(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.caption.copyWith(color: muted),
-                  ),
-                  if (isDuringClass && nextClass != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      '다음 ${nextClass.period}교시 ${nextClass.subject}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.body.copyWith(color: foreground),
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: isDuringClass
+                          ? SubjectPictogram(
+                              subject: currentClass.subject,
+                              size: 20,
+                            )
+                          : const Icon(
+                              Icons.schedule_rounded,
+                              color: AppColors.skyDark,
+                            ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isDuringClass ? '수업 중' : '현재 상태',
+                            style: AppTextStyles.overline,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isDuringClass
+                                ? '${currentClass.period}교시 ${currentClass.subject}'
+                                : _statusTitle(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.cardTitle,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            isDuringClass
+                                ? '종료까지 ${_durationLabel(snapshot.timeStatus.remaining)} · ${(progress * 100).round()}%'
+                                : _statusDetail(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.skyDark,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (isDuringClass && nextClass != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              '다음 ${nextClass.period}교시 ${nextClass.subject}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
