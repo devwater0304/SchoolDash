@@ -525,46 +525,33 @@ class _NextSchoolDayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final next = nextSchoolDay;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 112),
-      padding: const EdgeInsets.all(AppSpacing.section),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.cardBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: next == null
-          ? const Center(
-              child: Text('다음 수업일을 확인하고 있어요.', style: AppTextStyles.caption),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('다음 수업일', style: AppTextStyles.overline),
-                const SizedBox(height: 4),
-                Text(
-                  '${_formatToday(next.date)}에 등교해요',
-                  style: AppTextStyles.cardTitle,
-                ),
-                if (next.classes.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    '1교시 ${next.classes.first.subject} · 총 ${next.classes.length}교시',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.skyDark,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+    if (next == null) {
+      return Container(
+        constraints: const BoxConstraints(minHeight: 112),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: const Text('다음 수업일을 확인하고 있어요.', style: AppTextStyles.caption),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '다음 수업일 · ${_formatToday(next.date)}',
+          style: AppTextStyles.sectionTitle,
+        ),
+        const SizedBox(height: 4),
+        Text('총 ${next.classes.length}교시', style: AppTextStyles.caption),
+        const SizedBox(height: 14),
+        if (next.classes.isEmpty)
+          _TimetableEmptyState(schoolDay: null)
+        else
+          _TodayTimetableOverview(classes: next.classes),
+      ],
     );
   }
 }

@@ -86,8 +86,10 @@ class TimetableTile extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: current
                                 ? (dark
-                                      ? AppColors.sky.withValues(alpha: 0.14)
-                                      : AppColors.skyPale)
+                                      ? AppColors.skyDark.withValues(
+                                          alpha: 0.16,
+                                        )
+                                      : AppColors.sky.withValues(alpha: 0.10))
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                           ),

@@ -67,8 +67,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('오늘 수업은 끝났어요'), findsOneWidget);
-    expect(find.text('다음 수업일'), findsOneWidget);
-    expect(find.text('6월 16일 화요일에 등교해요'), findsOneWidget);
+    expect(find.text('다음 수업일 · 6월 16일 화요일'), findsOneWidget);
+    expect(find.text('총 7교시'), findsOneWidget);
+    expect(find.text('수학'), findsWidgets);
     expect(find.text('오늘의 급식 🍚'), findsNothing);
   });
 
@@ -90,7 +91,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('6월 22일 월요일에 등교해요'), findsOneWidget);
+    expect(find.text('다음 수업일 · 6월 22일 월요일'), findsOneWidget);
   });
 
   testWidgets('centers a school day off without daily dashboard cards', (
@@ -113,7 +114,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('오늘은 재량휴업일이에요'), findsOneWidget);
-    expect(find.text('다음 수업일'), findsOneWidget);
+    expect(find.text('다음 수업일 · 8월 18일 화요일'), findsOneWidget);
     expect(find.text('오늘의 시간표'), findsNothing);
     expect(find.text('오늘의 급식 🍚'), findsNothing);
   });
