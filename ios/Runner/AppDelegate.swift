@@ -12,8 +12,5 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    SchoolDashLiveActivityPlugin.register(
-      with: engineBridge.pluginRegistry.registrar(forPlugin: "SchoolDashLiveActivityPlugin")
-    )
   }
 }

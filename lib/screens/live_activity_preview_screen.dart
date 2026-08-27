@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/class_schedule.dart';
@@ -6,7 +5,6 @@ import '../models/school_dash_status_snapshot.dart';
 import '../models/school_profile.dart';
 import '../models/timetable_load_result.dart';
 import '../services/app_clock.dart';
-import '../services/ios_live_activity_service.dart';
 import '../services/school_dash_status_snapshot_resolver.dart';
 import '../services/timetable_load_service.dart';
 import '../theme/app_colors.dart';
@@ -37,7 +35,6 @@ class LiveActivityPreviewScreen extends StatefulWidget {
 
 class _LiveActivityPreviewScreenState extends State<LiveActivityPreviewScreen> {
   static const _resolver = SchoolDashStatusSnapshotResolver();
-  static const _iosLiveActivityService = IosLiveActivityService();
 
   late DateTime _now;
   TimetableLoadResult? _result;
@@ -120,22 +117,7 @@ class _LiveActivityPreviewScreenState extends State<LiveActivityPreviewScreen> {
                       child: Center(child: CircularProgressIndicator()),
                     )
                   else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        LiveActivityPreviewCard(snapshot: snapshot),
-                        if (defaultTargetPlatform == TargetPlatform.iOS) ...[
-                          const SizedBox(height: AppSpacing.medium),
-                          FilledButton.icon(
-                            onPressed: snapshot.timeStatus.currentClass == null
-                                ? null
-                                : () => _iosLiveActivityService.show(snapshot),
-                            icon: const Icon(Icons.ios_share_rounded),
-                            label: const Text('iPhone Live Activity에 표시'),
-                          ),
-                        ],
-                      ],
-                    ),
+                    LiveActivityPreviewCard(snapshot: snapshot),
                 ],
               ),
             ),
