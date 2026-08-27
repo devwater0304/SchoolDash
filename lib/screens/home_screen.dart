@@ -7,11 +7,12 @@ import '../models/meal.dart';
 import '../models/meal_load_result.dart';
 import '../models/school_day.dart';
 import '../models/school_profile.dart';
+import '../models/school_dash_status_snapshot.dart';
 import '../models/school_time_status.dart';
 import '../models/timetable_load_result.dart';
 import '../services/app_clock.dart';
-import '../services/home_situation_service.dart';
 import '../services/meal_load_service.dart';
+import '../services/school_dash_status_snapshot_resolver.dart';
 import '../services/school_time_service.dart';
 import '../services/timetable_load_service.dart';
 import '../theme/app_colors.dart';
@@ -49,7 +50,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _schoolTimeService = const SchoolTimeService();
-  final _homeSituationService = const HomeSituationService();
+  final _statusSnapshotResolver = const SchoolDashStatusSnapshotResolver();
   late DateTime _now;
   Timer? _clockTimer;
   TimetableLoadResult? _timetableResult;
@@ -159,17 +160,9 @@ class _HomeScreenState extends State<HomeScreen> {
             : TimetableLoadStatus.nonSchoolDay,
       );
     });
-    final schoolStatus = schoolDay.hasClasses
-        ? _schoolTimeService.calculateStatus(
-            now: _now,
-            schedule: result.timetable?.classes ?? const <ClassSchedule>[],
-          )
-        : const SchoolTimeStatus(
-            type: SchoolStatusType.noClasses,
-            remaining: Duration.zero,
-          );
+    final snapshot = _resolveStatusSnapshot(result: result);
     if (!schoolDay.hasClasses ||
-        schoolStatus.type == SchoolStatusType.afterClasses) {
+        snapshot.timeStatus.type == SchoolStatusType.afterClasses) {
       unawaited(_loadNextSchoolDay(date));
     }
   }
@@ -222,16 +215,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = _timetableResult;
     final classes = result?.timetable?.classes ?? const <ClassSchedule>[];
     final isVerifiedDayOff = result?.schoolDay.hasClasses == false;
-    final schoolStatus = result?.schoolDay.hasClasses == true
-        ? _schoolTimeService.calculateStatus(now: _now, schedule: classes)
-        : const SchoolTimeStatus(
-            type: SchoolStatusType.noClasses,
-            remaining: Duration.zero,
-          );
-    final situation = _homeSituationService.resolve(
-      schoolDay: result?.schoolDay,
-      timeStatus: schoolStatus,
-    );
+    final snapshot = _resolveStatusSnapshot(result: result);
+    final schoolStatus = snapshot.timeStatus;
+    final situation = snapshot.situation;
     final mealFirst = _selectedMeal(schoolStatus);
     final mealTitle = _mealTitle(schoolStatus, mealFirst);
     final showMealFirst = situation.showsMealFirst;
@@ -263,12 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 CurrentStatusCard(
                   status: schoolStatus,
                   schoolDay: result?.schoolDay,
-                  waterProgress: schoolStatus.currentClass == null
-                      ? 0
-                      : _schoolTimeService.classProgressFor(
-                          schedule: schoolStatus.currentClass!,
-                          now: _now,
-                        ),
+                  waterProgress: snapshot.classProgress,
                 ),
                 const SizedBox(height: AppSpacing.section),
                 if (!situation.showsDailyDashboard)
@@ -341,6 +322,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  SchoolDashStatusSnapshot _resolveStatusSnapshot({
+    required TimetableLoadResult? result,
+  }) => _statusSnapshotResolver.resolve(
+    now: _now,
+    schedule: result?.timetable?.classes ?? const <ClassSchedule>[],
+    schoolDay: result?.schoolDay,
+    nextSchoolDay: _nextSchoolDay?.date,
+  );
 
   Meal? _selectedMeal(SchoolTimeStatus status) {
     final meals = _mealResult?.meals ?? const <Meal>[];
